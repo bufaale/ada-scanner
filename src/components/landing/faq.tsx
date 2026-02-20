@@ -7,6 +7,16 @@ import {
 
 const faqItems = [
   {
+    question: "Why not just use an accessibility overlay widget?",
+    answer:
+      "Overlay widgets like accessiBe and UserWay apply cosmetic patches without fixing your actual source code. The FTC fined accessiBe $1 million in April 2025 for deceptive claims. In the first half of 2025, 22.6% of ADA lawsuits targeted websites with overlay widgets installed. Overlays do not prevent lawsuits — real source-code compliance does.",
+  },
+  {
+    question: "How is AccessiScan different from enterprise tools?",
+    answer:
+      "Siteimprove charges $15,000-63,000/year. Deque axe Monitor costs $27,000+/year. AccessiScan provides AI-generated fix code at $19/mo — the same capability that enterprise tools charge 50x more for. We focus on actionable fixes, not just issue reports.",
+  },
+  {
     question: "What is WCAG 2.1?",
     answer:
       "Web Content Accessibility Guidelines (WCAG) 2.1 is a set of international standards developed by the W3C to make web content accessible to people with disabilities. It includes three levels of conformance: A (minimum), AA (mid-range), and AAA (highest). Most legal requirements reference WCAG 2.1 Level AA compliance.",
