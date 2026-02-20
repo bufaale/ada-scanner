@@ -55,8 +55,8 @@ export const pricingPlans: PricingPlan[] = [
     id: "agency",
     name: "Agency",
     description: "Unlimited scans for agencies and teams",
-    monthlyPrice: 99,
-    yearlyPrice: 990,
+    monthlyPrice: 79,
+    yearlyPrice: 790,
     stripePriceIdMonthly: (process.env.NEXT_PUBLIC_STRIPE_AGENCY_MONTHLY_PRICE_ID || "").trim(),
     stripePriceIdYearly: (process.env.NEXT_PUBLIC_STRIPE_AGENCY_YEARLY_PRICE_ID || "").trim(),
     features: [
