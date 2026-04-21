@@ -1,23 +1,25 @@
+import { TitleIIBanner } from "@/components/landing/title-ii-banner";
 import { Hero } from "@/components/landing/hero";
+import { TrustStrip } from "@/components/landing/trust-strip";
 import { Stats } from "@/components/landing/stats";
-import { Features } from "@/components/landing/features";
-import { WhyUs } from "@/components/landing/why-us";
-import { Pricing } from "@/components/landing/pricing";
+import { ProductTruth } from "@/components/landing/product-truth";
 import { Comparison } from "@/components/landing/comparison";
-import { Testimonials } from "@/components/landing/testimonials";
-import { FAQ } from "@/components/landing/faq";
+import { GovCTA } from "@/components/landing/gov-cta";
+import { Pricing } from "@/components/landing/pricing";
+import { FinalCTA } from "@/components/landing/final-cta";
 
 export default function HomePage() {
   return (
     <>
+      <TitleIIBanner />
       <Hero />
+      <TrustStrip />
       <Stats />
-      <Features />
-      <WhyUs />
-      <Pricing />
+      <ProductTruth />
       <Comparison />
-      <Testimonials />
-      <FAQ />
+      <GovCTA />
+      <Pricing />
+      <FinalCTA />
     </>
   );
 }

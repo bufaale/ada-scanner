@@ -1,47 +1,28 @@
-import { Shield, AlertTriangle, Scale, TrendingUp } from "lucide-react";
-
-const stats = [
-  {
-    icon: AlertTriangle,
-    value: "37%",
-    label: "Increase in ADA lawsuits in 2025",
-  },
-  {
-    icon: Shield,
-    value: "22.6%",
-    label: "Of sued sites had overlay widgets installed",
-  },
-  {
-    icon: Scale,
-    value: "$1M",
-    label: "FTC fine against leading overlay provider",
-  },
-  {
-    icon: TrendingUp,
-    value: "5,000+",
-    label: "ADA website lawsuits filed last year",
-  },
+const STATS = [
+  { value: "5,100+", label: "Federal ADA lawsuits 2025", accent: false },
+  { value: "+37%", label: "Year-over-year increase", accent: false },
+  { value: "$15K/yr", label: "What Siteimprove costs", accent: false },
+  { value: "$19/mo", label: "What AccessiScan costs", accent: true },
 ];
 
 export function Stats() {
   return (
-    <section className="border-y bg-muted/30 py-12">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
-                <stat.icon className="h-5 w-5 text-destructive" />
-              </div>
-              <div className="text-3xl font-bold tracking-tight">
-                {stat.value}
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
+    <section className="border-y border-slate-200 bg-white">
+      <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-slate-200 px-6 py-16 md:grid-cols-4 md:divide-x">
+        {STATS.map((stat) => (
+          <div key={stat.label} className="flex flex-col items-start px-0 md:px-6 py-4">
+            <span
+              className={`font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-[56px] ${
+                stat.accent ? "text-[#06b6d4]" : "text-[#0b1f3a]"
+              }`}
+            >
+              {stat.value}
+            </span>
+            <span className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              {stat.label}
+            </span>
+          </div>
+        ))}
       </div>
     </section>
   );
