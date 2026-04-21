@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import {
   Search, FileText, Download, RefreshCw, Loader2, ArrowLeft,
   CheckCircle, AlertTriangle, AlertCircle, Info, Eye,
   Globe, Shield, Copy, Check, Sparkles, ExternalLink, Code,
-  FileBadge,
+  FileBadge, ClipboardCheck,
 } from "lucide-react";
 import type { Scan, ScanIssue, ScanPage, ScanVisualIssue } from "@/types/database";
 
@@ -291,6 +292,11 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push(`/dashboard/scans/new?url=${encodeURIComponent(scan.url)}`)}>
             <RefreshCw className="mr-2 h-4 w-4" /> Re-scan
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/dashboard/scans/${scan.id}/igts`}>
+              <ClipboardCheck className="mr-2 h-4 w-4" /> Guided Tests
+            </Link>
           </Button>
           <Button variant="outline" asChild>
             <a href={`/api/scans/${scan.id}/pdf`} download>
