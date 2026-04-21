@@ -11,6 +11,7 @@ import {
   CreditCard,
   Shield,
   Activity,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -32,6 +33,7 @@ const mainNav = [
   { title: "New Scan", href: "/dashboard/scans/new", icon: ScanSearch },
   { title: "Scan History", href: "/dashboard/scans", icon: History },
   { title: "Monitored sites", href: "/dashboard/monitored", icon: Activity },
+  { title: "PDF accessibility", href: "/dashboard/pdf-scans", icon: FileText },
 ];
 
 const settingsNav = [
