@@ -1,29 +1,38 @@
-import { type Page } from "@playwright/test";
+import { type Page, expect } from "@playwright/test";
 
-// ------- Constants -------
+// ------- App-specific constants -------
+export const APP_NAME = "AccessiScan";
+export type Tier = "free" | "pro" | "agency" | "business";
+export const ALL_TIERS: Tier[] = ["free", "pro", "agency", "business"];
+export const PAID_TIERS: Tier[] = ["pro", "agency", "business"];
+
 export const TEST_PASSWORD = "TestE2E_Pass123!";
+
+// Stripe test card (works only in test mode)
 export const STRIPE_TEST_CARD = "4242424242424242";
 export const STRIPE_TEST_EXPIRY = "1228";
 export const STRIPE_TEST_CVC = "123";
 
-// ------- Supabase Admin API -------
+// ------- Supabase admin helpers -------
 function supabaseUrl(): string {
   return process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 }
-
 function supabaseServiceKey(): string {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 }
-
 function supabaseAnonKey(): string {
   return process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 }
 
 /**
- * Creates a confirmed test user via the Supabase Admin API.
- * Returns the user ID and email.
+ * Create a confirmed test user. Optionally seed tier in one call.
+ * Email pattern: e2e-{prefix}-{timestamp}@test.example.com (namespaced so cleanup
+ * can mop up stale users if a run aborts).
  */
-export async function createTestUser(prefix: string): Promise<{ id: string; email: string }> {
+export async function createTestUser(
+  prefix: string,
+  tier: Tier = "free",
+): Promise<{ id: string; email: string }> {
   const email = `e2e-${prefix}-${Date.now()}@test.example.com`;
   const res = await fetch(`${supabaseUrl()}/auth/v1/admin/users`, {
     method: "POST",
@@ -41,12 +50,19 @@ export async function createTestUser(prefix: string): Promise<{ id: string; emai
   });
   if (!res.ok) throw new Error(`Failed to create user: ${await res.text()}`);
   const user = await res.json();
+  if (tier !== "free") {
+    for (let i = 0; i < 3; i++) {
+      try {
+        await setUserPlan(user.id, tier);
+        break;
+      } catch {
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+  }
   return { id: user.id, email };
 }
 
-/**
- * Deletes a test user via the Supabase Admin API.
- */
 export async function deleteTestUser(userId: string): Promise<void> {
   await fetch(`${supabaseUrl()}/auth/v1/admin/users/${userId}`, {
     method: "DELETE",
@@ -57,9 +73,38 @@ export async function deleteTestUser(userId: string): Promise<void> {
   });
 }
 
-/**
- * Logs in via the UI. Assumes page is on /login or navigates there.
- */
+export async function setUserPlan(userId: string, tier: Tier): Promise<void> {
+  const res = await fetch(`${supabaseUrl()}/rest/v1/profiles?id=eq.${userId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${supabaseServiceKey()}`,
+      apikey: supabaseAnonKey(),
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({
+      subscription_plan: tier,
+      subscription_status: tier === "free" ? "free" : "active",
+    }),
+  });
+  if (!res.ok) throw new Error(`Failed to set plan: ${await res.text()}`);
+}
+
+export async function setUserRole(userId: string, role: "admin" | "user"): Promise<void> {
+  const res = await fetch(`${supabaseUrl()}/rest/v1/profiles?id=eq.${userId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${supabaseServiceKey()}`,
+      apikey: supabaseAnonKey(),
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) throw new Error(`Failed to set role: ${await res.text()}`);
+}
+
+// ------- Login / logout helpers -------
 export async function loginViaUI(page: Page, email: string, password: string = TEST_PASSWORD) {
   await page.goto("/login");
   await page.getByRole("textbox", { name: "Email" }).fill(email);
@@ -68,77 +113,76 @@ export async function loginViaUI(page: Page, email: string, password: string = T
   await page.waitForURL("**/dashboard**", { timeout: 15_000 });
 }
 
-/**
- * Logs in via the Supabase Auth API directly (faster, no UI interaction).
- * Sets auth cookies so subsequent navigations are authenticated.
- */
-export async function loginViaAPI(page: Page, email: string, password: string = TEST_PASSWORD) {
-  const baseURL = page.context().pages()[0]?.url()?.split("/").slice(0, 3).join("/")
-    || process.env.TEST_BASE_URL
-    || "https://app-04-ada-scanner.vercel.app";
+export async function logoutViaUI(page: Page) {
+  const avatar = page.getByRole("button").filter({ hasText: /^[A-Z]{2,3}$/ });
+  await avatar.click();
+  await page.getByRole("menuitem", { name: /sign out|log out|cerrar sesi/i }).click();
+  await page.waitForURL("**/login**", { timeout: 10_000 });
+}
 
-  // Sign in via Supabase to get tokens
-  const res = await fetch(`${supabaseUrl()}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: {
-      apikey: supabaseAnonKey(),
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
+// ------- Navigation helpers -------
+export async function clickSidebar(page: Page, label: string | RegExp) {
+  const link = page.getByRole("link", {
+    name: typeof label === "string" ? new RegExp(label, "i") : label,
   });
-  if (!res.ok) throw new Error(`Login failed: ${await res.text()}`);
-  const { access_token, refresh_token } = await res.json();
-
-  // Set Supabase auth cookies on the browser context
-  const domain = new URL(baseURL).hostname;
-  await page.context().addCookies([
-    {
-      name: "sb-access-token",
-      value: access_token,
-      domain,
-      path: "/",
-      httpOnly: false,
-      secure: true,
-      sameSite: "Lax",
-    },
-    {
-      name: "sb-refresh-token",
-      value: refresh_token,
-      domain,
-      path: "/",
-      httpOnly: false,
-      secure: true,
-      sameSite: "Lax",
-    },
-  ]);
-
-  // Navigate to dashboard to trigger SSR auth check with cookies
-  await page.goto("/dashboard");
+  await link.first().click();
 }
 
 /**
- * Updates a user's subscription plan directly via Supabase Admin.
- * Useful for testing Pro features without going through Stripe.
+ * Audit every internal link on the current page — GET each /... href and return
+ * status. Skips external, mailto:, tel:, hash-only, api routes.
  */
-export async function setUserPlan(
-  userId: string,
-  plan: "free" | "pro" | "agency",
-): Promise<void> {
-  const res = await fetch(
-    `${supabaseUrl()}/rest/v1/profiles?id=eq.${userId}`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${supabaseServiceKey()}`,
-        apikey: supabaseAnonKey(),
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({
-        subscription_plan: plan,
-        subscription_status: plan === "free" ? "free" : "active",
-      }),
-    },
+export async function auditPageLinks(
+  page: Page,
+  opts: { ignore?: RegExp[] } = {},
+): Promise<Array<{ href: string; status: number }>> {
+  const anchors = await page.locator("a[href]").all();
+  const raw: string[] = [];
+  for (const a of anchors) {
+    const h = await a.getAttribute("href");
+    if (h) raw.push(h);
+  }
+  const hrefs = Array.from(
+    new Set(
+      raw.filter(
+        (h) => h.startsWith("/") && !h.startsWith("//") && !h.startsWith("/api/"),
+      ),
+    ),
   );
-  if (!res.ok) throw new Error(`Failed to set plan: ${await res.text()}`);
+  const ignore = opts.ignore || [];
+  const filtered = hrefs.filter((h) => !ignore.some((re) => re.test(h)));
+  const baseURL = page.url().split("/").slice(0, 3).join("/");
+  const cookieHeader = (await page.context().cookies())
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+  const out: Array<{ href: string; status: number }> = [];
+  for (const href of filtered) {
+    try {
+      const r = await fetch(baseURL + href, {
+        method: "GET",
+        headers: { Cookie: cookieHeader },
+        redirect: "manual",
+      });
+      out.push({ href, status: r.status });
+    } catch {
+      out.push({ href, status: 0 });
+    }
+  }
+  return out;
+}
+
+export async function expectBillingTier(page: Page, tier: Tier) {
+  const label: Record<Tier, RegExp> = {
+    free: /free/i,
+    pro: /\bpro\b/i,
+    agency: /agency/i,
+    business: /business/i,
+  };
+  await expect(page.getByText(label[tier]).first()).toBeVisible({ timeout: 10_000 });
+}
+
+/** Wait for a scan row to reach "completed" status on the scans list. */
+export async function waitForScanCompleted(page: Page, scanId: string, timeoutMs = 180_000) {
+  const row = page.locator(`[data-scan-id="${scanId}"]`);
+  await expect(row).toContainText(/completed/i, { timeout: timeoutMs });
 }

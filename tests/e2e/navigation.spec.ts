@@ -14,7 +14,9 @@ test.afterAll(async () => {
 test.describe("Navigation - Public pages", () => {
   test("landing page loads", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("link", { name: /get started|sign up/i })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /start free|get started|sign up/i }).first(),
+    ).toBeVisible();
   });
 
   test("login page loads", async ({ page }) => {

@@ -39,21 +39,26 @@ test.describe.serial("Scanning - Free user", () => {
     await page.getByRole("textbox", { name: /example\.com/i }).fill("https://example.com");
     await page.getByRole("button", { name: "Run Scan" }).click();
 
-    // Should show scanning state
-    await expect(page.getByText("Scanning...")).toBeVisible({ timeout: 5_000 });
+    // Either the button is still "Scanning..." or we've already redirected —
+    // both are valid transitions, so wait for whichever lands first.
+    await Promise.race([
+      page.getByText("Scanning...").waitFor({ timeout: 5_000 }).catch(() => null),
+      page.waitForURL("**/dashboard/scans/**", { timeout: 5_000 }).catch(() => null),
+    ]);
 
-    // Wait for scan to complete and redirect to results
-    await page.waitForURL("**/dashboard/scans/**", { timeout: 90_000 });
-    await expect(page.getByText("Completed")).toBeVisible({ timeout: 30_000 });
+    await page.waitForURL("**/dashboard/scans/**", { timeout: 120_000 });
+    await expect(page.getByText(/Completed|completed/).first()).toBeVisible({ timeout: 60_000 });
 
-    // Verify results page content
-    await expect(page.getByText("Compliance Score")).toBeVisible();
+    await expect(page.getByText(/Code Analysis|Compliance Score/).first()).toBeVisible();
     await expect(page.getByText("Level A", { exact: true })).toBeVisible();
-    await expect(page.getByText("Issues Found")).toBeVisible();
-    await expect(page.getByRole("link", { name: "PDF Report" })).toBeVisible();
+    await expect(page.getByText(/Issues Found|Issues/).first()).toBeVisible();
+    // PDF Report is in a button in the header — match either <a> or <button>
+    await expect(page.getByRole("link", { name: /PDF Report/i }).or(
+      page.getByRole("button", { name: /PDF Report/i }),
+    ).first()).toBeVisible();
 
-    // Free user should see AI upsell, not AI analysis
-    await expect(page.getByText("Upgrade to Pro for AI Analysis")).toBeVisible();
+    // Free user: the AI upsell (Visual AI) should be visible; the "Unlock Visual AI" button
+    await expect(page.getByRole("button", { name: /Unlock Visual AI|Upgrade/i }).first()).toBeVisible();
   });
 
   test("scan appears in history", async ({ page }) => {

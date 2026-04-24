@@ -18,7 +18,16 @@ test.afterAll(async () => {
   if (testUser?.id) await deleteTestUser(testUser.id);
 });
 
+// Skip Stripe checkout tests when running against a LIVE-mode Stripe deployment.
+// Live Stripe rejects test cards (4242...). To run this suite, either point
+// TEST_BASE_URL at a local dev server with STRIPE_SECRET_KEY=sk_test_... or
+// set STRIPE_TEST_MODE=1 explicitly.
+const stripeLiveMode =
+  process.env.STRIPE_TEST_MODE !== "1" &&
+  (process.env.TEST_BASE_URL || "").includes("vercel.app");
+
 test.describe.serial("Billing - Stripe Integration", () => {
+  test.skip(stripeLiveMode, "Stripe checkout tests require STRIPE_TEST_MODE=1 or local dev server");
   test("free user sees upgrade buttons", async ({ page }) => {
     await loginViaUI(page, testUser.email);
     await page.getByRole("link", { name: "Billing" }).click();

@@ -36,18 +36,19 @@ async function runQuickScanAndGetId(page: import("@playwright/test").Page) {
 }
 
 test.describe.serial("VPAT 2.5 export", () => {
-  test("free users see VPAT gated with Pro badge and are redirected to pricing", async ({ page }) => {
+  test("free users see VPAT gated with Pro badge and are redirected to billing", async ({ page }) => {
     test.setTimeout(150_000);
 
     await loginViaUI(page, freeUser.email);
     await runQuickScanAndGetId(page);
 
-    const vpatButton = page.getByRole("button", { name: /VPAT 2\.5/i });
+    // Free tier shows a single combined button "VPAT / EN 301 549" with a Pro badge.
+    const vpatButton = page.getByRole("button", { name: /VPAT.*EN 301 549/i });
     await expect(vpatButton).toBeVisible();
-    await expect(vpatButton.getByText("Pro")).toBeVisible();
+    await expect(vpatButton.getByText(/^Pro$/)).toBeVisible();
 
     await vpatButton.click();
-    await page.waitForURL("**/pricing", { timeout: 10_000 });
+    await page.waitForURL("**/settings/billing", { timeout: 10_000 });
   });
 
   test("pro users download a valid VPAT PDF", async ({ page }) => {
