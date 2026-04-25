@@ -1,5 +1,5 @@
 export const siteConfig = {
-  name: "ADA Scanner",
+  name: "AccessiScan",
   description:
     "AI-powered WCAG compliance scanner. Analyze any website's accessibility in seconds with detailed scores, actionable recommendations, and AI-generated fix suggestions.",
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",

@@ -24,9 +24,24 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://accessiscan.app"),
   title: "AccessiScan — WCAG 2.1 AA Compliance + VPAT 2.5 + CI/CD",
   description:
     "Real WCAG 2.1 AA scanning with AI-generated fix code, VPAT 2.5 export, and a GitHub Action for CI/CD. Built for the DOJ Title II deadline. From $19/mo.",
+  openGraph: {
+    title: "AccessiScan — WCAG 2.1 AA + VPAT 2.5",
+    description:
+      "Real WCAG 2.1 AA scanning with AI-generated fix code, VPAT 2.5 export, and a GitHub Action for CI/CD.",
+    images: ["/og.png"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AccessiScan — WCAG 2.1 AA + VPAT 2.5",
+    description:
+      "Real WCAG 2.1 AA scanning with AI-generated fix code, VPAT 2.5 export, and a GitHub Action for CI/CD.",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({

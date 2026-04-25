@@ -58,7 +58,7 @@ function SubscribeButton({
       )}
     >
       {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      {loading ? "Loading..." : "Start 14-day trial"}
+      {loading ? "Loading..." : "Start free — upgrade anytime"}
     </Button>
   );
 }

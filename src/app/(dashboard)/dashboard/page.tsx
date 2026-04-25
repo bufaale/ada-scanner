@@ -72,7 +72,7 @@ export default function DashboardPage() {
     switch (status) {
       case "completed": return <Badge variant="default" className="bg-green-600">Completed</Badge>;
       case "pending": return <Badge variant="secondary">Pending</Badge>;
-      case "scanning": return <Badge variant="secondary" className="bg-blue-600 text-white">Scanning</Badge>;
+      case "crawling": return <Badge variant="secondary" className="bg-blue-600 text-white">Crawling</Badge>;
       case "analyzing": return <Badge variant="secondary" className="bg-purple-600 text-white">Analyzing</Badge>;
       case "failed": return <Badge variant="destructive">Failed</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
