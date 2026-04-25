@@ -127,3 +127,56 @@ test.describe("Tier gating — billing page shows correct plan", () => {
     });
   }
 });
+
+// Auto-Fix PRs is the killer Business-tier feature. Lock down the API so
+// neither the UI gate nor the server gate can drift without us catching it.
+const FAKE_UUID = "00000000-0000-0000-0000-000000000000";
+const AUTOFIX_BODY = {
+  scan_id: FAKE_UUID,
+  issue_ids: [FAKE_UUID],
+  repo_full_name: "owner/repo",
+};
+
+test.describe("Tier gating — Auto-Fix PRs (Business-only)", () => {
+  for (const tier of ["free", "pro", "agency"] as const) {
+    test(`${tier} user: POST /api/github-action/auto-fix returns 402`, async ({ page }) => {
+      await loginViaUI(page, users[tier].email);
+      const res = await page.request.post("/api/github-action/auto-fix", {
+        data: AUTOFIX_BODY,
+      });
+      expect(res.status()).toBe(402);
+      const body = await res.json();
+      expect(body.error).toMatch(/business/i);
+    });
+  }
+
+  test("business user without GitHub install: returns 412 with install_url", async ({ page }) => {
+    await loginViaUI(page, users.business.email);
+    const res = await page.request.post("/api/github-action/auto-fix", {
+      data: AUTOFIX_BODY,
+    });
+    // Test users never have a GitHub install — should always fail at the
+    // install check, not the tier gate.
+    expect(res.status()).toBe(412);
+    const body = await res.json();
+    expect(body.error).toMatch(/github installation/i);
+    expect(body.install_url).toContain("github.com/apps/");
+  });
+
+  test("unauthenticated: POST /api/github-action/auto-fix returns 401", async ({ page }) => {
+    // Fresh context, no login.
+    await page.context().clearCookies();
+    const res = await page.request.post("/api/github-action/auto-fix", {
+      data: AUTOFIX_BODY,
+    });
+    expect(res.status()).toBe(401);
+  });
+
+  test("business user with bad input: returns 400", async ({ page }) => {
+    await loginViaUI(page, users.business.email);
+    const res = await page.request.post("/api/github-action/auto-fix", {
+      data: { scan_id: "not-a-uuid", issue_ids: [], repo_full_name: "missing-slash" },
+    });
+    expect(res.status()).toBe(400);
+  });
+});
