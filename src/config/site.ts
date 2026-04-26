@@ -5,7 +5,7 @@ export const siteConfig = {
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ogImage: "/og.png",
   links: {
-    github: "https://github.com/bufaale/ada-scanner",
-    twitter: "https://twitter.com/adascanner",
+    github: "https://github.com/bufaale/accessiscan",
+    twitter: "https://twitter.com/piposlab",
   },
 } as const;

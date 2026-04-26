@@ -513,7 +513,7 @@ async function processScan(scan: PendingScan) {
 }
 
 export async function startWorker() {
-  console.log("ADA Scanner Worker started. Polling for scans...");
+  console.log("AccessiScan Worker started. Polling for scans...");
 
   // Graceful shutdown
   const shutdown = async () => {

@@ -59,7 +59,7 @@ Check the build logs for errors. Should see:
 Once deployed, check the runtime logs:
 
 ```
-ADA Scanner Worker started. Polling for scans...
+AccessiScan Worker started. Polling for scans...
 ```
 
 ### 5. Test the Worker

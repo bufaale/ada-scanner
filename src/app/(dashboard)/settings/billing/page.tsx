@@ -7,7 +7,7 @@ import { ManageSubscriptionButton } from "./manage-subscription-button";
 import type { Profile } from "@/types/database";
 
 export const metadata = {
-  title: "Billing - ADA Scanner",
+  title: "Billing - AccessiScan",
 };
 
 export default async function BillingPage() {

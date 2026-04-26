@@ -55,7 +55,7 @@ export function FAQ() {
         <div className="text-center">
           <h2 className="text-3xl font-bold">Frequently asked questions</h2>
           <p className="text-muted-foreground mt-4 mx-auto max-w-2xl">
-            Everything you need to know about ADA Scanner.
+            Everything you need to know about AccessiScan.
           </p>
         </div>
         <div className="mt-12">

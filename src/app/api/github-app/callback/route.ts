@@ -11,7 +11,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { appOctokit } from "@/lib/github/app-client";
 
 export async function GET(req: NextRequest) {
-  const baseURL = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app-04-ada-scanner.vercel.app";
+  const baseURL = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://accessiscan.piposlab.com";
   const url = new URL(req.url);
   const installationId = url.searchParams.get("installation_id");
   const setupAction = url.searchParams.get("setup_action");

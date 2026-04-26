@@ -7,8 +7,8 @@
 // Setup steps (one-time, by us):
 // 1. Create a GitHub App at https://github.com/settings/apps/new
 //    Name: "AccessiScan Auto-Fix"
-//    Homepage: https://app-04-ada-scanner.vercel.app
-//    Callback URL: https://app-04-ada-scanner.vercel.app/api/github-app/callback
+//    Homepage: https://accessiscan.piposlab.com
+//    Callback URL: https://accessiscan.piposlab.com/api/github-app/callback
 //    Webhook URL: (leave blank for MVP — we trigger fixes on user action)
 //    Permissions:
 //      - Repository: Contents read+write, Pull requests read+write, Metadata read

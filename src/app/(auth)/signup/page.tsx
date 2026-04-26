@@ -2,7 +2,7 @@ import { SignupForm } from "@/components/auth/signup-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign Up - ADA Scanner",
+  title: "Sign Up - AccessiScan",
 };
 
 export default function SignupPage() {

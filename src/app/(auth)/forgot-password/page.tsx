@@ -2,7 +2,7 @@ import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Reset Password - ADA Scanner",
+  title: "Reset Password - AccessiScan",
 };
 
 export default function ForgotPasswordPage() {

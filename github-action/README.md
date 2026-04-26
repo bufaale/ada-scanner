@@ -49,4 +49,4 @@ jobs:
 - **DOJ Title II deadline April 24, 2026** — public entities with 50K+ residents must comply.
 - **No overlay** — this runs real axe-core on the rendered DOM, unlike widget-based "fixes" that the FTC fined $1M.
 
-Want AI-powered fix code, VPAT 2.5 reports for government procurement, and deep-crawl scans? [Get AccessiScan →](https://app-04-ada-scanner.vercel.app)
+Want AI-powered fix code, VPAT 2.5 reports for government procurement, and deep-crawl scans? [Get AccessiScan →](https://accessiscan.piposlab.com)

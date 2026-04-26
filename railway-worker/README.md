@@ -1,4 +1,4 @@
-# ADA Scanner Worker
+# AccessiScan Worker
 
 Railway worker service for processing ADA/WCAG accessibility scans using Playwright and axe-core.
 

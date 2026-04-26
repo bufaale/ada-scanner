@@ -138,7 +138,7 @@ async function harvestCompletedScans(admin: AdminClient): Promise<number> {
     // Dispatch email only on regression AND when we had a previous baseline
     // (don't alert on the very first scan).
     if (regressed && prevScore !== null && site.alert_email) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app-04-ada-scanner.vercel.app";
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://accessiscan.piposlab.com";
       try {
         await sendRegressionAlert({
           toEmail: site.alert_email,

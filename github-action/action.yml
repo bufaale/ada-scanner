@@ -81,7 +81,7 @@ runs:
             `| 🔵 Minor | ${counts.minor || 0} |`,
             '',
             total > 0
-              ? `_Want AI-powered fix code, VPAT reports, and deep-crawl scans? [Get AccessiScan →](https://app-04-ada-scanner.vercel.app)_`
+              ? `_Want AI-powered fix code, VPAT reports, and deep-crawl scans? [Get AccessiScan →](https://accessiscan.piposlab.com)_`
               : `✅ No WCAG ${process.env.INPUT_WCAG_LEVEL} violations detected by automated scan.`,
           ].join('\n');
           await github.rest.issues.createComment({
