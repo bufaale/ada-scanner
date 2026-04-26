@@ -33,7 +33,7 @@ export async function sendRegressionAlert(input: RegressionAlertInput): Promise<
     console.warn("RESEND_API_KEY not set, skipping regression alert");
     return;
   }
-  const from = process.env.RESEND_FROM_EMAIL ?? "AccessiScan <alerts@accessiscan.app>";
+  const from = process.env.RESEND_FROM_EMAIL ?? "AccessiScan <alerts@piposlab.com>";
 
   const scoreDelta = fmtDelta(input.previousScore, input.currentScore);
   const criticalDelta = fmtDelta(input.previousCritical, input.currentCritical);

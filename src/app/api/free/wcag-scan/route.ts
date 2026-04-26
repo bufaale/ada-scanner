@@ -60,6 +60,6 @@ export async function POST(req: NextRequest) {
     report,
     email_captured,
     upgrade_cta:
-      "Run the full Playwright-based scan with VPAT 2.5 export at https://accessiscan.app/signup",
+      "Run the full Playwright-based scan with VPAT 2.5 export at https://accessiscan.piposlab.com/signup",
   });
 }

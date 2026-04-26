@@ -9,9 +9,9 @@
 
 export const PIPO_LABS_URLS = {
   portfolio: "https://piposlab.com",
-  accessiscan: "https://accessiscan.app",
-  callspark: "https://callspark.app",
-  aicomply: "https://aicomply.us",
+  accessiscan: "https://accessiscan.piposlab.com",
+  callspark: "https://callspark.piposlab.com",
+  aicomply: "https://aicomply.piposlab.com",
 } as const;
 
 export interface CrossPromoApp {

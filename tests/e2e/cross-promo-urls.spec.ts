@@ -16,9 +16,9 @@ test.describe("Cross-promo URLs use prod domains", () => {
 
   test("PIPO_LABS_URLS canonical map has all 4 apps", () => {
     expect(PIPO_LABS_URLS.portfolio).toBe("https://piposlab.com");
-    expect(PIPO_LABS_URLS.accessiscan).toBe("https://accessiscan.app");
-    expect(PIPO_LABS_URLS.callspark).toBe("https://callspark.app");
-    expect(PIPO_LABS_URLS.aicomply).toBe("https://aicomply.us");
+    expect(PIPO_LABS_URLS.accessiscan).toBe("https://accessiscan.piposlab.com");
+    expect(PIPO_LABS_URLS.callspark).toBe("https://callspark.piposlab.com");
+    expect(PIPO_LABS_URLS.aicomply).toBe("https://aicomply.piposlab.com");
   });
 
   test("AccessiScan footer (this app) does NOT cross-promote itself", () => {

@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       redirect: "follow",
       headers: {
         "User-Agent":
-          "AccessiScan-Overlay-Detector/1.0 (+https://accessiscan.app/overlay-detector)",
+          "AccessiScan-Overlay-Detector/1.0 (+https://accessiscan.piposlab.com/overlay-detector)",
         Accept: "text/html,application/xhtml+xml",
       },
       signal: controller.signal,
