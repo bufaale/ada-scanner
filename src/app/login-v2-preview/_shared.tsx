@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 // ============================================================
 //  Tokens
@@ -424,20 +425,31 @@ function PrimaryButton({
   );
 }
 
-function SsoButton({ children, icon, onClick }: { children: ReactNode; icon: ReactNode; onClick?: () => void }) {
+function SsoButton({
+  children,
+  icon,
+  onClick,
+  disabled = false,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
   const [hover, setHover] = useState(false);
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         width: "100%",
         height: 44,
         borderRadius: 8,
-        border: `1px solid ${hover ? C.navy900 : C.slate300}`,
-        background: hover ? C.slate50 : "#fff",
+        border: `1px solid ${hover && !disabled ? C.navy900 : C.slate300}`,
+        background: disabled ? C.slate100 : hover ? C.slate50 : "#fff",
         color: C.navy900,
         fontWeight: 600,
         fontSize: 14,
@@ -446,7 +458,8 @@ function SsoButton({ children, icon, onClick }: { children: ReactNode; icon: Rea
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.6 : 1,
         transition: "all .15s ease",
       }}
     >
@@ -764,13 +777,32 @@ function strengthOf(pw: string): Strength {
 type LoginErrors = { email?: string; password?: string };
 
 function LoginForm({ onSwitch }: { onSwitch: () => void }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
-  const [errors, setErrors] = useState<LoginErrors>({});
+  const [errors, setErrors] = useState<LoginErrors & { _form?: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const handleOAuth = async (provider: "google" | "github") => {
+    setOauthLoading(provider);
+    setErrors({});
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/confirm`,
+        queryParams: provider === "google" ? { prompt: "select_account" } : {},
+      },
+    });
+    if (error) {
+      setErrors({ _form: error.message });
+      setOauthLoading(null);
+    }
+  };
+
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const errs: LoginErrors = {};
     if (!email.trim()) errs.email = "Enter your email";
@@ -779,19 +811,38 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setSubmitting(true);
-    // eslint-disable-next-line no-console
-    console.log("[login-v2-preview] submit", { email, remember });
-    setTimeout(() => setSubmitting(false), 1400);
+
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      setErrors({ _form: error.message });
+      setSubmitting(false);
+      return;
+    }
+
+    router.push("/dashboard");
+    router.refresh();
   };
 
   return (
     <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <SsoButton icon={<GoogleG size={18} />}>Google</SsoButton>
-        <SsoButton icon={<GithubMark size={18} />}>GitHub</SsoButton>
+        <SsoButton icon={<GoogleG size={18} />} onClick={() => handleOAuth("google")} disabled={!!oauthLoading || submitting}>
+          {oauthLoading === "google" ? "Connecting..." : "Google"}
+        </SsoButton>
+        <SsoButton icon={<GithubMark size={18} />} onClick={() => handleOAuth("github")} disabled={!!oauthLoading || submitting}>
+          {oauthLoading === "github" ? "Connecting..." : "GitHub"}
+        </SsoButton>
       </div>
 
       <Divider>or sign in with email</Divider>
+
+      {errors._form && (
+        <div role="alert" style={{ padding: "10px 12px", background: "rgba(220,38,38,0.08)", border: `1px solid ${C.red600}`, borderRadius: 6, fontSize: 13, color: C.red700, fontFamily: F_SANS }}>
+          {errors._form}
+        </div>
+      )}
 
       <Field label="Work email" htmlFor="login-email" error={errors.email}>
         <Input
@@ -811,7 +862,7 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
         htmlFor="login-password"
         error={errors.password}
         trailing={
-          <a href="#forgot" style={{ fontSize: 13, color: C.navy900, fontWeight: 600, textDecoration: "none" }}>
+          <a href="/forgot-password" style={{ fontSize: 13, color: C.navy900, fontWeight: 600, textDecoration: "none" }}>
             Forgot password?
           </a>
         }
@@ -838,7 +889,7 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
       <p style={{ margin: "8px 0 0", textAlign: "center", fontSize: 14, color: C.slate600 }}>
         Don&apos;t have an account?{" "}
         <a
-          href="/signup-v2-preview"
+          href="/signup"
           onClick={(e) => {
             e.preventDefault();
             onSwitch();
@@ -858,16 +909,36 @@ function LoginForm({ onSwitch }: { onSwitch: () => void }) {
 type SignupErrors = { name?: string; email?: string; password?: string; agree?: string };
 
 function SignupForm({ onSwitch }: { onSwitch: () => void }) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agree, setAgree] = useState(false);
-  const [errors, setErrors] = useState<SignupErrors>({});
+  const [errors, setErrors] = useState<SignupErrors & { _form?: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const strength = useMemo(() => strengthOf(password), [password]);
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const handleOAuth = async (provider: "google" | "github") => {
+    setOauthLoading(provider);
+    setErrors({});
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/confirm`,
+        queryParams: provider === "google" ? { prompt: "select_account" } : {},
+      },
+    });
+    if (error) {
+      setErrors({ _form: error.message });
+      setOauthLoading(null);
+    }
+  };
+
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const errs: SignupErrors = {};
     if (!name.trim()) errs.name = "What should we call you?";
@@ -879,19 +950,76 @@ function SignupForm({ onSwitch }: { onSwitch: () => void }) {
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setSubmitting(true);
-    // eslint-disable-next-line no-console
-    console.log("[signup-v2-preview] submit", { name, email });
-    setTimeout(() => setSubmitting(false), 1600);
+
+    const supabase = createClient();
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: name },
+      },
+    });
+
+    if (error) {
+      setErrors({ _form: error.message });
+      setSubmitting(false);
+      return;
+    }
+
+    // Detect existing-account: when email confirmation is disabled, Supabase
+    // silently logs in pre-existing users. Tell them to sign in instead.
+    if (data.user) {
+      const createdAt = new Date(data.user.created_at);
+      const diffSeconds = (Date.now() - createdAt.getTime()) / 1000;
+      if (diffSeconds > 10) {
+        await supabase.auth.signOut();
+        setErrors({ _form: "An account with this email already exists. Please sign in instead." });
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    setSuccess(true);
+    setSubmitting(false);
+    // If email confirmation is disabled, also push to dashboard. Otherwise the
+    // success state shows "check your email".
+    if (data.session) {
+      router.push("/dashboard");
+      router.refresh();
+    }
   };
+
+  if (success) {
+    return (
+      <div role="status" style={{ padding: 24, background: C.cyan50, border: `1px solid ${C.cyan500}`, borderRadius: 8, fontFamily: F_SANS }}>
+        <h3 style={{ margin: 0, fontFamily: F_DISPLAY, fontSize: 20, fontWeight: 600, color: C.navy900 }}>
+          Check your email
+        </h3>
+        <p style={{ margin: "12px 0 0", fontSize: 14, color: C.slate700, lineHeight: 1.55 }}>
+          We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account and start your first WCAG scan.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <SsoButton icon={<GoogleG size={18} />}>Google</SsoButton>
-        <SsoButton icon={<GithubMark size={18} />}>GitHub</SsoButton>
+        <SsoButton icon={<GoogleG size={18} />} onClick={() => handleOAuth("google")} disabled={!!oauthLoading || submitting}>
+          {oauthLoading === "google" ? "Connecting..." : "Google"}
+        </SsoButton>
+        <SsoButton icon={<GithubMark size={18} />} onClick={() => handleOAuth("github")} disabled={!!oauthLoading || submitting}>
+          {oauthLoading === "github" ? "Connecting..." : "GitHub"}
+        </SsoButton>
       </div>
 
       <Divider>or sign up with email</Divider>
+
+      {errors._form && (
+        <div role="alert" style={{ padding: "10px 12px", background: "rgba(220,38,38,0.08)", border: `1px solid ${C.red600}`, borderRadius: 6, fontSize: 13, color: C.red700, fontFamily: F_SANS }}>
+          {errors._form}
+        </div>
+      )}
 
       <Field label="Full name" htmlFor="signup-name" error={errors.name}>
         <Input
@@ -1021,7 +1149,7 @@ function SignupForm({ onSwitch }: { onSwitch: () => void }) {
       <p style={{ margin: "8px 0 0", textAlign: "center", fontSize: 14, color: C.slate600 }}>
         Already have an account?{" "}
         <a
-          href="/login-v2-preview"
+          href="/login"
           onClick={(e) => {
             e.preventDefault();
             onSwitch();
@@ -1082,7 +1210,7 @@ function LeftPanel({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }
           <span style={{ display: "inline-block", transform: "rotate(180deg)" }}>
             <IconArrowR size={14} sw={2} />
           </span>
-          Back to accessiscan.io
+          Back to AccessiScan
         </a>
         <div
           style={{
@@ -1169,10 +1297,13 @@ export default function AuthShell({ initialMode }: { initialMode: Mode }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
 
-  // Sync URL when user toggles mode in-page (without full reload)
+  // Sync URL when user toggles mode in-page (without full reload).
+  // After production swap, mode toggle navigates to the canonical /login and
+  // /signup routes. The v2-preview routes still load this same shell as a
+  // backup during the design-refresh window.
   useEffect(() => {
     if (mode !== initialMode) {
-      const target = mode === "login" ? "/login-v2-preview" : "/signup-v2-preview";
+      const target = mode === "login" ? "/login" : "/signup";
       router.push(target);
     }
   }, [mode, initialMode, router]);
