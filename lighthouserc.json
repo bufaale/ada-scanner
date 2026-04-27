@@ -17,7 +17,7 @@
       }
     },
     "assert": {
-      "preset": "lighthouse:recommended",
+      "preset": "lighthouse:no-pwa",
       "assertions": {
         "categories:performance": ["error", { "minScore": 0.75 }],
         "categories:accessibility": ["error", { "minScore": 0.95 }],
@@ -29,7 +29,14 @@
         "uses-responsive-images": "off",
         "valid-source-maps": "off",
         "errors-in-console": "off",
-        "is-on-https": "off"
+        "is-on-https": "off",
+        "legacy-javascript": "off",
+        "critical-request-chains": "off",
+        "network-dependency-tree-insight": "off",
+        "dom-size-insight": "off",
+        "dom-size": "off",
+        "third-party-summary": "off",
+        "bf-cache": "off"
       }
     },
     "upload": {

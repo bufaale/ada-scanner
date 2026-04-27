@@ -195,7 +195,8 @@ function WcagSchematic() {
   type ChipProps = { id: string; label: string; style: CSSProperties };
   const Chip = ({ id, label, style }: ChipProps) => (
     <div style={{ position: "absolute", zIndex: 20, display: "flex", alignItems: "center", gap: 8, borderRadius: 4, border: "1px solid rgba(6,182,212,.40)", background: "#0b1f3a", padding: "5px 10px", boxShadow: "0 10px 24px rgba(0,0,0,.3)", ...style }}>
-      <span style={{ fontFamily: FONT_MONO, fontSize: 11, fontWeight: 700, color: "#0e7490" }}>{id}</span>
+      {/* cyan-500 #06b6d4 on navy = 5.91:1 (AA pass). cyan-700 fails on dark bg. */}
+      <span style={{ fontFamily: FONT_MONO, fontSize: 11, fontWeight: 700, color: "#06b6d4" }}>{id}</span>
       <span style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.10em", color: "rgba(255,255,255,0.7)" }}>{label}</span>
     </div>
   );
@@ -301,7 +302,7 @@ function StatsStrip() {
       <div style={{ maxWidth: 1320, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4,1fr)", borderTop: "1px solid #e2e8f0", borderBottom: "1px solid #e2e8f0", padding: "32px 0" }}>
         {stats.map(([v, l, c], i) => (
           <div key={l} style={{ padding: "0 28px", borderLeft: i === 0 ? 0 : "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
-            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 56, lineHeight: 1, letterSpacing: "-0.02em", color: c === "cy" ? "#06b6d4" : "#0b1f3a" }}>{v}</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 56, lineHeight: 1, letterSpacing: "-0.02em", color: c === "cy" ? "#0e7490" : "#0b1f3a" }}>{v}</span>
             <Eyebrow>{l}</Eyebrow>
           </div>
         ))}
