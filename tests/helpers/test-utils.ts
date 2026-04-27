@@ -194,6 +194,110 @@ export async function waitForScanCompleted(page: Page, scanId: string, timeoutMs
   await expect(row).toContainText(/completed/i, { timeout: timeoutMs });
 }
 
+/** Seed a single scan_issue row tied to a scan. Used by auto-fix tests. */
+export async function seedScanIssue(
+  scanId: string,
+  overrides: Partial<{
+    rule_id: string;
+    rule_description: string;
+    severity: "critical" | "serious" | "moderate" | "minor";
+    wcag_level: "A" | "AA" | "AAA";
+    html_snippet: string;
+    selector: string;
+    page_url: string;
+    impact: string;
+    help_url: string;
+  }> = {},
+): Promise<{ id: string }> {
+  const payload = {
+    scan_id: scanId,
+    rule_id: overrides.rule_id ?? "image-alt",
+    rule_description:
+      overrides.rule_description ??
+      "Images must have alternate text",
+    severity: overrides.severity ?? "serious",
+    wcag_level: overrides.wcag_level ?? "A",
+    html_snippet: overrides.html_snippet ?? '<img src="hero.png">',
+    selector: overrides.selector ?? "img",
+    page_url: overrides.page_url ?? "https://example.com/",
+    impact: overrides.impact ?? "Screen readers cannot announce this image.",
+    help_url:
+      overrides.help_url ??
+      "https://dequeuniversity.com/rules/axe/4.10/image-alt",
+  };
+  const res = await fetch(`${supabaseUrl()}/rest/v1/scan_issues`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${supabaseServiceKey()}`,
+      apikey: supabaseAnonKey(),
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to seed scan_issue: ${await res.text()}`);
+  const rows = await res.json();
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  return { id: row.id };
+}
+
+/**
+ * Borrow an existing github_installation row by temporarily reassigning
+ * its user_id to a test user. Returns a release() that restores the
+ * original user_id.
+ *
+ * Required because github_installation_id has a UNIQUE constraint —
+ * there's only one row per real GitHub installation, owned by the user
+ * who clicked "Install".
+ */
+export async function borrowGithubInstall(
+  testUserId: string,
+  githubInstallationId: number,
+): Promise<{ release: () => Promise<void> }> {
+  const lookupRes = await fetch(
+    `${supabaseUrl()}/rest/v1/github_installations?github_installation_id=eq.${githubInstallationId}&select=id,user_id`,
+    {
+      headers: {
+        Authorization: `Bearer ${supabaseServiceKey()}`,
+        apikey: supabaseAnonKey(),
+      },
+    },
+  );
+  const rows = await lookupRes.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(
+      `No existing github_installations row for install_id=${githubInstallationId}. ` +
+        `Install the AccessiScan GitHub App on the test repo first.`,
+    );
+  }
+  const original = rows[0];
+  const originalUserId: string = original.user_id;
+
+  const reassign = async (toUserId: string) => {
+    const r = await fetch(
+      `${supabaseUrl()}/rest/v1/github_installations?id=eq.${original.id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${supabaseServiceKey()}`,
+          apikey: supabaseAnonKey(),
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({ user_id: toUserId }),
+      },
+    );
+    if (!r.ok) throw new Error(`Reassign failed: ${await r.text()}`);
+  };
+
+  await reassign(testUserId);
+  return {
+    release: async () => {
+      await reassign(originalUserId).catch(() => {});
+    },
+  };
+}
+
 /**
  * Seed a completed scan row directly into Supabase (bypasses the worker).
  * Used by data-flow tests that need realistic dashboard/scan-list data without
