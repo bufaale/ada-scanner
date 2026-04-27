@@ -18,14 +18,14 @@ import {
 } from "../../helpers/test-utils";
 
 const PAID_TIERS_TO_TEST = [
-  { id: "pro", priceLabel: /\$19/, expectStripe: true },
-  { id: "agency", priceLabel: /\$49/, expectStripe: true },
-  { id: "business", priceLabel: /\$299/, expectStripe: true },
+  { id: "pro", monthlyPrice: 19 },
+  { id: "agency", monthlyPrice: 49 },
+  { id: "business", monthlyPrice: 299 },
 ];
 
-test.describe("Stripe tier — upgrade flow starts checkout correctly", () => {
+test.describe("Stripe tier — upgrade button visibility on /settings/billing", () => {
   for (const tier of PAID_TIERS_TO_TEST) {
-    test(`${tier.id} — billing page upgrade button redirects to Stripe checkout`, async ({
+    test(`${tier.id} — "Upgrade to ${tier.id}" button is visible with price label`, async ({
       page,
     }) => {
       const u = await createTestUser(`tier-${tier.id}`, "free");
@@ -34,42 +34,19 @@ test.describe("Stripe tier — upgrade flow starts checkout correctly", () => {
         await page.goto("/settings/billing");
         await page.waitForLoadState("networkidle");
 
-        const body = await page.locator("body").innerText();
-        expect(body, `Billing page should mention ${tier.id} tier`).toMatch(
-          new RegExp(tier.id, "i"),
-        );
-
-        // Upgrade should produce a navigation to checkout.stripe.com OR a
-        // server-side redirect via /api/stripe/checkout. We catch the Stripe URL
-        // by intercepting all navigation/popups.
-        let checkoutUrlSeen = false;
-        page.on("framenavigated", (frame) => {
-          if (frame.url().includes("checkout.stripe.com")) checkoutUrlSeen = true;
+        // Match the actual button label format from upgrade-buttons.tsx:
+        //   "Upgrade to Pro ($19/mo)"
+        const tierName = tier.id.charAt(0).toUpperCase() + tier.id.slice(1);
+        const upgradeBtn = page.getByRole("button", {
+          name: new RegExp(`upgrade.*${tier.id}`, "i"),
         });
+        await expect(
+          upgradeBtn,
+          `${tier.id} upgrade button missing from billing page`,
+        ).toBeVisible({ timeout: 10_000 });
 
-        // Click an upgrade CTA matching this tier. Pattern matches "Upgrade to Pro"
-        // or "Choose Pro" or just the tier name on a button.
-        const upgradeBtn = page
-          .getByRole("button")
-          .filter({ hasText: new RegExp(`upgrade.*${tier.id}|choose.*${tier.id}|select.*${tier.id}`, "i") })
-          .first();
-        const isUpgradeBtnVisible = await upgradeBtn.isVisible().catch(() => false);
-
-        if (isUpgradeBtnVisible) {
-          await Promise.race([
-            upgradeBtn.click(),
-            page.waitForURL(/checkout\.stripe\.com|stripe\.com/i, { timeout: 15_000 }),
-          ]).catch(() => {});
-          await page.waitForTimeout(2000);
-        }
-
-        // The pricing page on /pricing-v2-preview or via /settings/billing should
-        // show the price label somewhere.
-        const billingBody = await page.locator("body").innerText();
-        expect(
-          billingBody,
-          `${tier.id} tier price label should be visible on billing page`,
-        ).toMatch(tier.priceLabel);
+        // Price should be in the button label (UX gap fix: free user sees price upfront).
+        await expect(upgradeBtn).toContainText(`$${tier.monthlyPrice}`);
       } finally {
         await deleteTestUser(u.id);
       }
@@ -78,7 +55,7 @@ test.describe("Stripe tier — upgrade flow starts checkout correctly", () => {
 });
 
 test.describe("Team tier (contact-sales)", () => {
-  test("Team tier shows 'Contact sales' CTA, NOT Stripe checkout", async ({
+  test("Team tier renders as 'Contact sales' link, NOT a checkout button", async ({
     page,
   }) => {
     const u = await createTestUser("tier-team-cs", "free");
@@ -87,14 +64,20 @@ test.describe("Team tier (contact-sales)", () => {
       await page.goto("/settings/billing");
       await page.waitForLoadState("networkidle");
 
-      const body = await page.locator("body").innerText();
-      // If Team tier is rendered, it should advertise contact-sales CTA.
-      const teamMentioned = /team/i.test(body);
-      if (teamMentioned) {
-        expect(body, "Team tier should expose contact-sales CTA").toMatch(
-          /contact\s*sales|talk\s*to\s*sales|enterprise|book\s*a\s*call/i,
-        );
-      }
+      // After the bug fix, Team tier renders as an <a href="mailto:..."> labeled
+      // "Contact sales (Team)" or the plan's ctaLabel. Verify both:
+      // 1) A link (not a checkout button) with contact-sales copy is visible
+      const contactLink = page.getByRole("link", {
+        name: /contact\s*sales/i,
+      });
+      await expect(
+        contactLink,
+        "Team tier should render as a Contact sales link",
+      ).toBeVisible({ timeout: 10_000 });
+
+      // 2) Its href is a mailto, not /api/stripe/checkout
+      const href = await contactLink.getAttribute("href");
+      expect(href, "Contact sales href must be mailto, not Stripe").toMatch(/^mailto:/);
     } finally {
       await deleteTestUser(u.id);
     }

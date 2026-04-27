@@ -76,7 +76,7 @@ test.describe("API error → user-facing error UI", () => {
     }
   });
 
-  test("/free/wcag-scan API failure shows error message, not blank", async ({
+  test("/free/wcag-scan API failure shows error alert, not silent failure", async ({
     page,
   }) => {
     await page.route("**/api/free/wcag-scan", (route) =>
@@ -89,17 +89,14 @@ test.describe("API error → user-facing error UI", () => {
     await page.goto("/free/wcag-scanner");
     const input = page.getByRole("textbox").first();
     await input.fill("https://example.com");
-    const submit = page.getByRole("button", { name: /scan|run|start/i }).first();
+    const submit = page.getByRole("button", { name: /scan/i }).first();
     await submit.click();
-    await page.waitForLoadState("networkidle");
 
-    const body = await page.locator("body").innerText();
-    // Should show something to the user about the failure, not silent.
-    const hasErrorSurface = /error|failed|unable|try again|something/i.test(body);
-    expect(
-      hasErrorSurface,
-      "/free/wcag-scanner should surface API failures to the user",
-    ).toBe(true);
+    // The form sets an error state which renders inside <div role="alert">.
+    // Asserting on the role is more robust than fuzzy text matching.
+    const errorAlert = page.getByRole("alert").first();
+    await expect(errorAlert).toBeVisible({ timeout: 10_000 });
+    await expect(errorAlert).toContainText(/forced test failure|scan failed|error/i);
   });
 });
 
