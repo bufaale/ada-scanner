@@ -25,20 +25,40 @@ const PUBLIC_ROUTES = [
   "/blog",
 ];
 
-const FORBIDDEN_BRAND_LEAKS = [
-  "ADA Scanner",
+// Template scaffolding leaks that should NEVER appear anywhere — title, meta,
+// or body. These are signs the app wasn't fully rebranded from the boilerplate.
+// This is the bug class operator caught in ReviewStack ("SaaS AI Boilerplate"
+// tab title) and SaaS Boilerplate (broken/placeholder content).
+const TEMPLATE_LEAKS = [
   "SaaS AI Boilerplate",
   "SaaS Boilerplate",
-  "Pilotdeck",
-  "AIComply",
-  "CallSpark",
-  "ReviewStack",
   "Lorem ipsum",
   "TODO",
   "FIXME",
   "Coming soon",
   "Placeholder",
 ];
+
+// Sibling brands. Wrong as the app's IDENTITY (tab title, meta description)
+// but valid in body content (cross-promo footer, comparison tables, etc.).
+const SIBLING_BRANDS = [
+  "Pilotdeck",
+  "AIComply",
+  "CallSpark",
+  "ReviewStack",
+  "ContentFlow",
+  "PriceHawk",
+  "PingPanda",
+  "Votefuse",
+  "ClauseForge",
+  "StatusBeacon",
+  "Subjectly",
+];
+
+// "ADA Scanner" is the OLD product name pre-rebrand to AccessiScan. Should not
+// appear as the brand identity (tab title) but is fine as the regulatory term
+// in body copy ("ADA Title II", "ADA-compliant", etc.).
+const OLD_BRAND_AS_IDENTITY = ["ADA Scanner"];
 
 test.describe("Branding consistency — every public route", () => {
   for (const route of PUBLIC_ROUTES) {
@@ -54,27 +74,28 @@ test.describe("Branding consistency — every public route", () => {
       const description = await page
         .locator('meta[name="description"]')
         .getAttribute("content");
-      if (description) {
-        expect(description, `${route} meta description should not leak template names`)
-          .not.toMatch(/SaaS AI Boilerplate|SaaS Boilerplate|Lorem ipsum/i);
-      }
+      const titleAndMeta = `${title}\n${description ?? ""}`;
 
-      for (const leak of FORBIDDEN_BRAND_LEAKS) {
-        expect(title, `${route} tab title leaks "${leak}"`).not.toContain(leak);
+      // Tab title + meta = the app's IDENTITY signal. Reject all leaks here.
+      for (const leak of [...TEMPLATE_LEAKS, ...SIBLING_BRANDS, ...OLD_BRAND_AS_IDENTITY]) {
+        expect(
+          titleAndMeta,
+          `${route} title/meta leaks "${leak}"`,
+        ).not.toContain(leak);
       }
     });
 
-    test(`${route} — visible body copy doesn't leak other brand names`, async ({
+    test(`${route} — body copy is free of template scaffolding leaks`, async ({
       page,
     }) => {
       await page.goto(route);
       const bodyText = await page.locator("body").innerText();
 
-      // ADA Scanner is the regulatory term, allowed in body copy. Other brand
-      // leaks (template names, sibling product names) are not.
-      const blockers = FORBIDDEN_BRAND_LEAKS.filter((s) => s !== "ADA Scanner");
-      for (const leak of blockers) {
-        expect(bodyText, `${route} body leaks "${leak}"`).not.toContain(leak);
+      // Body content can legitimately reference sibling brands (cross-promo) and
+      // ADA terminology (regulatory). Only reject scaffolding/template leaks.
+      for (const leak of TEMPLATE_LEAKS) {
+        expect(bodyText, `${route} body leaks template scaffolding: "${leak}"`)
+          .not.toContain(leak);
       }
     });
   }
