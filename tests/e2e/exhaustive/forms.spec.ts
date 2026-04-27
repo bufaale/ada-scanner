@@ -9,11 +9,14 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Free WCAG scanner form (/free/wcag-scanner)", () => {
-  test("rejects empty URL with visible error", async ({ page }) => {
+  test("does not navigate away on empty URL submit", async ({ page }) => {
     await page.goto("/free/wcag-scanner");
-    const submit = page.getByRole("button", { name: /scan|run|start/i }).first();
-    await submit.click();
-    // Either HTML5 validation kicks in, or a visible error appears.
+    // Press Enter on the input — works regardless of submit button label.
+    const input = page.getByRole("textbox").first();
+    await input.focus();
+    await input.press("Enter");
+    await page.waitForTimeout(800);
+    // URL must NOT have changed to a results page.
     const url = new URL(page.url()).pathname;
     expect(url).toBe("/free/wcag-scanner");
   });
@@ -99,17 +102,28 @@ test.describe("Signup form (/signup)", () => {
     expect(body).toMatch(/match|differ|password/i);
   });
 
-  test("rejects weak password", async ({ page }) => {
+  test("does not allow account creation with weak password", async ({ page }) => {
     await page.goto("/signup");
     const email = page.getByRole("textbox", { name: /email/i });
     await email.fill(`e2e-weak-${Date.now()}@test.example.com`);
     const pwd = page.locator('input[type="password"]').first();
     await pwd.fill("123");
-    const submit = page.getByRole("button", { name: /sign\s*up|create/i }).first();
-    await submit.click();
-    // Should not have created the account. Either still on /signup or showing error.
-    await page.waitForTimeout(1500);
-    const url = new URL(page.url()).pathname;
-    expect(url, "Weak password should NOT create an account").toMatch(/\/signup/);
+    const submit = page
+      .getByRole("button", { name: /sign\s*up|create/i })
+      .first();
+
+    // Two acceptable behaviors:
+    // 1) Submit button remains disabled (good UX) → assert disabled state.
+    // 2) Submit is enabled but click stays on /signup with error → click + check URL.
+    const disabled = await submit.isDisabled().catch(() => false);
+    if (disabled) {
+      // Good. Form correctly rejects weak password by gating submit.
+      expect(disabled).toBe(true);
+    } else {
+      await submit.click();
+      await page.waitForTimeout(1500);
+      const url = new URL(page.url()).pathname;
+      expect(url, "Weak password should NOT create an account").toMatch(/\/signup/);
+    }
   });
 });
