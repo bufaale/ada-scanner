@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { UpgradeButtons } from "./upgrade-buttons";
 import { ManageSubscriptionButton } from "./manage-subscription-button";
+import { InvoicesList } from "./invoices-list";
 
 export const metadata = {
   title: "Billing - AccessiScan",
@@ -337,6 +338,8 @@ export default async function BillingPage() {
           </div>
         </div>
       </div>
+
+      {profile?.stripe_customer_id ? <InvoicesList /> : null}
 
       {/* Tier comparison — preserved from previous version */}
       <div

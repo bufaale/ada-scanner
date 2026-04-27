@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { CrossPromoBanner } from "@/components/dashboard/cross-promo-banner";
+import { TopViolationsCard } from "@/components/dashboard/top-violations-card";
 import type { Scan, Site } from "@/types/database";
 
 // Design tokens (mirror Claude Design v2)
@@ -110,6 +111,8 @@ export default function DashboardPage() {
       {sites.length > 0 && (
         <SitesGrid sites={sites} onClick={(domain) => router.push(`/dashboard/sites/${domain}`)} />
       )}
+
+      <TopViolationsCard />
 
       <CrossPromoBanner />
     </div>
