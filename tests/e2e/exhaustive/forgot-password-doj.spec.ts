@@ -31,9 +31,13 @@ test.describe("/forgot-password — DOJ deadline banner", () => {
     await page.goto("/forgot-password");
     await page.waitForLoadState("networkidle");
 
-    const body = await page.locator("body").innerText();
-    expect(body).toMatch(/\bdays?\b/i);
-    expect(body).toMatch(/\bremaining\b/i);
+    // The banner renders `<span>{days}</span>days remaining` with no space
+    // between the count and "days" so a strict \bdays\b boundary against
+    // body.innerText fails. Match against the textContent of the deadline
+    // banner element directly, which preserves the markup-level structure.
+    const bannerText = await page.locator("[role='status']").first().textContent();
+    expect(bannerText).toMatch(/days/i);
+    expect(bannerText).toMatch(/remaining/i);
   });
 
   test("banner shows a numeric day count (>0) in mono font", async ({

@@ -44,7 +44,7 @@ export async function GET(req: Request) {
 
   const { data: issues, error: issueErr } = await supabase
     .from("scan_issues")
-    .select("rule_id, severity, wcag_level, description")
+    .select("rule_id, severity, wcag_level, rule_description")
     .in("scan_id", scanIds)
     .limit(5000);
   if (issueErr) return NextResponse.json({ error: issueErr.message }, { status: 500 });
@@ -65,7 +65,7 @@ export async function GET(req: Request) {
         count: 1,
         severity: issue.severity,
         wcag_level: issue.wcag_level ?? null,
-        description: issue.description ?? null,
+        description: issue.rule_description ?? null,
       });
     }
   }
