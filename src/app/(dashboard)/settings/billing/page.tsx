@@ -123,8 +123,31 @@ export default async function BillingPage() {
 
   const pricing = PLAN_PRICING[planKey] || PLAN_PRICING.free;
   const memberSince = formatMemberSince(profile?.created_at);
-  const billingCycle = isActive ? "Monthly" : "—";
-  const nextRenewal = isActive ? "Managed in Stripe portal" : "—";
+
+  let billingCycle = isActive ? "Monthly" : "—";
+  let nextRenewal = isActive ? "Managed in Stripe portal" : "—";
+  if (isActive && profile?.stripe_subscription_id) {
+    try {
+      const { getStripe } = await import("@/lib/stripe/server");
+      const sub = await getStripe().subscriptions.retrieve(profile.stripe_subscription_id);
+      const item = sub.items.data[0];
+      const recurring = item?.price?.recurring;
+      if (recurring?.interval === "year") billingCycle = "Annual";
+      else if (recurring?.interval === "month") billingCycle = "Monthly";
+      const subAny = sub as unknown as { current_period_end?: number };
+      const itemAny = item as unknown as { current_period_end?: number };
+      const periodEnd = itemAny?.current_period_end ?? subAny.current_period_end;
+      if (typeof periodEnd === "number") {
+        nextRenewal = new Date(periodEnd * 1000).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+    } catch {
+      // Fall through with placeholder values; never break the page on a Stripe outage.
+    }
+  }
 
   return (
     <div
