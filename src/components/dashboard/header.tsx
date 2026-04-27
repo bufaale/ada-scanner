@@ -45,7 +45,7 @@ export async function DashboardHeader() {
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/settings">Settings</Link>
+            <Link href="/settings/profile">Settings</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/settings/billing">Billing</Link>

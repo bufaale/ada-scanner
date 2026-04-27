@@ -1,3 +1,10 @@
+export interface NotificationPreferences {
+  scan_complete: boolean;
+  weekly_summary: boolean;
+  compliance_alerts: boolean;
+  marketing_emails: boolean;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -8,6 +15,10 @@ export interface Profile {
   subscription_plan: string;
   api_key: string | null;
   role: string;
+  company: string | null;
+  country: string | null;
+  timezone: string | null;
+  notification_preferences: NotificationPreferences;
   created_at: string;
   updated_at: string;
 }
