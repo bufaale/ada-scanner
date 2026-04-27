@@ -504,6 +504,8 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
         </div>
       ) : null}
 
+      <SeverityBars counts={issueCounts} fixableCount={fixableCount} />
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
         {(["critical", "serious", "moderate", "minor"] as const).map((sev) => {
           const count = issueCounts[sev];
@@ -651,6 +653,55 @@ function ScoreCard({
           PRO
         </span>
       )}
+    </div>
+  );
+}
+
+function SeverityBars({
+  counts,
+  fixableCount,
+}: {
+  counts: Record<"critical" | "serious" | "moderate" | "minor", number>;
+  fixableCount: number;
+}) {
+  const sevs = ["critical", "serious", "moderate", "minor"] as const;
+  const total = sevs.reduce((a, s) => a + counts[s], 0);
+  if (total === 0) return null;
+  const manual = Math.max(0, total - fixableCount);
+  return (
+    <div data-testid="severity-bars" style={{ fontFamily: FONT_INTER }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10, gap: 16, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: SLATE_400, fontWeight: 600 }}>
+          {total} violation{total === 1 ? "" : "s"} across all severities
+        </div>
+        <div style={{ fontSize: 11.5, color: SLATE_500 }}>
+          <b style={{ color: CYAN, fontFamily: FONT_MONO, fontSize: 12 }}>{fixableCount}</b> auto-fixable ·
+          <span style={{ fontFamily: FONT_MONO, fontSize: 12, color: SLATE_500, marginLeft: 4 }}>{manual}</span> manual
+        </div>
+      </div>
+      <div style={{ display: "flex", height: 10, borderRadius: 4, overflow: "hidden", background: SLATE_100 }}>
+        {sevs.map((s) => {
+          const cfg = severityConfig[s];
+          const pct = total > 0 ? (counts[s] / total) * 100 : 0;
+          return <div key={s} style={{ width: `${pct}%`, background: cfg.color }} />;
+        })}
+      </div>
+      <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+        {sevs.map((s) => {
+          const cfg = severityConfig[s];
+          return (
+            <div key={s} style={{ padding: "12px 14px", border: `1px solid ${SLATE_200}`, borderRadius: 6, background: "#fff" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span aria-hidden style={{ width: 8, height: 8, borderRadius: 2, background: cfg.color }} />
+                <span style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: SLATE_500, fontWeight: 600 }}>{cfg.label}</span>
+              </div>
+              <div style={{ marginTop: 6, fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 24, color: cfg.color, letterSpacing: "-0.02em", lineHeight: 1 }}>
+                {counts[s]}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

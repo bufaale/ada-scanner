@@ -6,6 +6,8 @@ import Link from "next/link";
 import { DashboardError } from "@/components/dashboard/dashboard-error";
 import { CrossPromoBanner } from "@/components/dashboard/cross-promo-banner";
 import { TopViolationsCard } from "@/components/dashboard/top-violations-card";
+import { WcagBreakdownCard } from "@/components/dashboard/wcag-breakdown";
+import { ComplianceTrendCard } from "@/components/dashboard/compliance-trend";
 import type { Scan, Site } from "@/types/database";
 
 // Design tokens (mirror Claude Design v2)
@@ -107,6 +109,10 @@ export default function DashboardPage() {
         onNewScan={() => router.push("/dashboard/scans/new")}
         onViewAll={() => router.push("/dashboard/scans")}
       />
+
+      <ComplianceTrendCard />
+
+      <WcagBreakdownCard />
 
       {sites.length > 0 && (
         <SitesGrid sites={sites} onClick={(domain) => router.push(`/dashboard/sites/${domain}`)} />
