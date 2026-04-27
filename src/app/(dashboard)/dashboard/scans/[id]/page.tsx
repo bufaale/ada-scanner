@@ -1,22 +1,28 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import {
-  Search, FileText, Download, RefreshCw, Loader2, ArrowLeft,
-  CheckCircle, AlertTriangle, AlertCircle, Info, Eye,
-  Globe, Shield, Copy, Check, Sparkles, ExternalLink, Code,
-  FileBadge, ClipboardCheck,
-} from "lucide-react";
 import { GenerateFixPRButton } from "@/components/auto-fix/generate-pr-button";
 import type { Scan, ScanIssue, ScanPage, ScanVisualIssue } from "@/types/database";
+
+const FONT_DISPLAY = "var(--font-display), sans-serif";
+const FONT_INTER = "var(--font-inter), sans-serif";
+const FONT_MONO = "var(--font-mono), monospace";
+const NAVY = "#0b1f3a";
+const CYAN = "#06b6d4";
+const RED = "#dc2626";
+const GREEN = "#16a34a";
+const VIOLET = "#7c3aed";
+const SLATE_50 = "#f8fafc";
+const SLATE_100 = "#f1f5f9";
+const SLATE_200 = "#e2e8f0";
+const SLATE_300 = "#cbd5e1";
+const SLATE_400 = "#94a3b8";
+const SLATE_500 = "#64748b";
+const SLATE_700 = "#334155";
 
 interface ScanWithDetails extends Scan {
   scan_issues: ScanIssue[];
@@ -24,65 +30,58 @@ interface ScanWithDetails extends Scan {
   scan_pages: ScanPage[] | null;
 }
 
-const categoryConfig: Record<string, { label: string; emoji: string; color: string }> = {
-  contrast: { label: "Contrast", emoji: "🎨", color: "text-orange-500" },
-  "text-readability": { label: "Readability", emoji: "📖", color: "text-blue-500" },
-  "touch-targets": { label: "Touch Targets", emoji: "👆", color: "text-purple-500" },
-  "color-only": { label: "Color Only", emoji: "🔴", color: "text-red-500" },
-  "visual-hierarchy": { label: "Hierarchy", emoji: "📐", color: "text-indigo-500" },
-  "image-text": { label: "Image Text", emoji: "🖼️", color: "text-pink-500" },
-  "form-labeling": { label: "Form Labels", emoji: "📝", color: "text-teal-500" },
-  spacing: { label: "Spacing", emoji: "↔️", color: "text-cyan-500" },
-  "focus-indicators": { label: "Focus", emoji: "🎯", color: "text-yellow-500" },
-  animation: { label: "Animation", emoji: "🎬", color: "text-green-500" },
-};
-
-const severityConfig: Record<ScanIssue["severity"], {
-  label: string;
-  icon: React.ElementType;
-  color: string;
-  badgeClass: string;
-}> = {
-  critical: { label: "Critical", icon: AlertCircle, color: "text-red-500", badgeClass: "bg-red-600 text-white" },
-  serious: { label: "Serious", icon: AlertTriangle, color: "text-orange-500", badgeClass: "bg-orange-600 text-white" },
-  moderate: { label: "Moderate", icon: Info, color: "text-yellow-500", badgeClass: "bg-yellow-600 text-white" },
-  minor: { label: "Minor", icon: CheckCircle, color: "text-blue-500", badgeClass: "bg-blue-600 text-white" },
+const severityConfig: Record<
+  ScanIssue["severity"],
+  { label: string; color: string; bg: string }
+> = {
+  critical: { label: "Critical", color: RED, bg: "rgba(220,38,38,0.10)" },
+  serious: { label: "Serious", color: "#ea580c", bg: "rgba(234,88,12,0.12)" },
+  moderate: { label: "Moderate", color: "#ca8a04", bg: "rgba(202,138,4,0.12)" },
+  minor: { label: "Minor", color: "#2563eb", bg: "rgba(37,99,235,0.10)" },
 };
 
 const wcagLevelColors: Record<string, string> = {
-  A: "bg-green-600",
-  AA: "bg-blue-600",
-  AAA: "bg-purple-600",
+  A: GREEN,
+  AA: "#2563eb",
+  AAA: VIOLET,
 };
 
 function ScoreGauge({ score, size = "lg" }: { score: number | null; size?: "sm" | "lg" }) {
-  const displayScore = score ?? 0;
-  const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference - (displayScore / 100) * circumference;
-  const color = displayScore >= 80 ? "#16a34a" : displayScore >= 50 ? "#ca8a04" : "#dc2626";
-  const dim = size === "lg" ? 160 : 80;
-
+  const dim = size === "lg" ? 140 : 72;
+  const stroke = size === "lg" ? 8 : 6;
+  const r = 45;
+  const c = 2 * Math.PI * r;
   if (score === null) {
     return (
-      <div className={`flex items-center justify-center ${size === "lg" ? "h-40 w-40" : "h-20 w-20"}`}>
-        <span className="text-muted-foreground">—</span>
+      <div style={{ width: dim, height: dim, display: "flex", alignItems: "center", justifyContent: "center", color: SLATE_400, fontFamily: FONT_DISPLAY, fontSize: size === "lg" ? 32 : 18, fontWeight: 700 }}>
+        —
       </div>
     );
   }
-
+  const color = score >= 80 ? GREEN : score >= 50 ? "#ca8a04" : RED;
+  const off = c - (score / 100) * c;
   return (
-    <div className="relative" style={{ width: dim, height: dim }}>
-      <svg viewBox="0 0 100 100" className="transform -rotate-90">
-        <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
-        <circle cx="50" cy="50" r="45" fill="none" stroke={color} strokeWidth="8"
-          strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round" className="transition-all duration-1000" />
+    <div style={{ position: "relative", width: dim, height: dim }}>
+      <svg viewBox="0 0 100 100" style={{ width: dim, height: dim, transform: "rotate(-90deg)" }}>
+        <circle cx="50" cy="50" r={r} fill="none" stroke={SLATE_100} strokeWidth={stroke} />
+        <circle
+          cx="50"
+          cy="50"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeDasharray={c}
+          strokeDashoffset={off}
+          strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 1s ease" }}
+        />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-bold ${size === "lg" ? "text-4xl" : "text-xl"}`} style={{ color }}>
-          {displayScore}
-        </span>
-        {size === "lg" && <span className="text-xs text-muted-foreground">/ 100</span>}
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: size === "lg" ? 36 : 18, color, lineHeight: 1, letterSpacing: "-0.02em" }}>{score}</span>
+        {size === "lg" && (
+          <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: SLATE_400, marginTop: 4, fontWeight: 600 }}>/ 100</span>
+        )}
       </div>
     </div>
   );
@@ -101,92 +100,151 @@ function CopyCodeButton({ code }: { code: string }) {
     }
   }
   return (
-    <Button variant="ghost" size="sm" onClick={handleCopy}>
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-    </Button>
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label="Copy code"
+      style={{ width: 28, height: 28, border: `1px solid ${SLATE_200}`, borderRadius: 4, background: "#fff", color: SLATE_500, cursor: "pointer", fontSize: 12 }}
+    >
+      {copied ? "✓" : "⎘"}
+    </button>
+  );
+}
+
+function StatusPill({ status }: { status: Scan["status"] }) {
+  const map: Record<Scan["status"], { color: string; bg: string; label: string }> = {
+    completed: { color: GREEN, bg: "rgba(22,163,74,0.10)", label: "Completed" },
+    analyzing: { color: VIOLET, bg: "rgba(124,58,237,0.10)", label: "Analyzing" },
+    crawling: { color: "#2563eb", bg: "rgba(37,99,235,0.10)", label: "Crawling" },
+    pending: { color: SLATE_500, bg: SLATE_100, label: "Pending" },
+    failed: { color: RED, bg: "rgba(220,38,38,0.10)", label: "Failed" },
+  };
+  const it = map[status];
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 9999, background: it.bg, color: it.color, fontSize: 11, fontWeight: 600, fontFamily: FONT_INTER }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: it.color }} aria-hidden />
+      {it.label}
+    </span>
+  );
+}
+
+function ActionButton({
+  variant = "outline",
+  href,
+  download,
+  onClick,
+  children,
+  disabled = false,
+}: {
+  variant?: "primary" | "outline";
+  href?: string;
+  download?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  const base: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    height: 36,
+    padding: "0 14px",
+    fontSize: 13,
+    fontWeight: 600,
+    fontFamily: FONT_INTER,
+    borderRadius: 6,
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.55 : 1,
+    textDecoration: "none",
+    border:
+      variant === "primary" ? "none" : `1px solid ${SLATE_300}`,
+    background: variant === "primary" ? NAVY : "#fff",
+    color: variant === "primary" ? "#fff" : NAVY,
+  };
+  if (href) {
+    return (
+      <a href={href} download={download} style={base}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} style={base}>
+      {children}
+    </button>
   );
 }
 
 function IssueCard({ issue, subscriptionPlan }: { issue: ScanIssue; subscriptionPlan: string }) {
-  const severity = severityConfig[issue.severity];
-  const SeverityIcon = severity.icon;
-
+  const sev = severityConfig[issue.severity];
   return (
-    <Card>
-      <CardContent className="py-4">
-        <div className="flex items-start gap-3">
-          <SeverityIcon className={`h-5 w-5 mt-0.5 shrink-0 ${severity.color}`} />
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium">{issue.rule_id}</span>
-              <Badge className={severity.badgeClass}>{severity.label}</Badge>
-              {issue.wcag_level && (
-                <Badge className={wcagLevelColors[issue.wcag_level]}>
-                  WCAG {issue.wcag_level}
-                </Badge>
-              )}
-            </div>
-
-            <p className="text-sm">{issue.rule_description}</p>
-
-            {issue.impact && (
-              <p className="text-sm text-muted-foreground">
-                <strong>Impact:</strong> {issue.impact}
-              </p>
-            )}
-
-            {issue.html_snippet && (
-              <div className="relative">
-                <pre className="bg-muted p-3 rounded text-xs overflow-x-auto max-h-32"><code>{issue.html_snippet}</code></pre>
-                <div className="absolute top-1 right-1"><CopyCodeButton code={issue.html_snippet} /></div>
-              </div>
-            )}
-
-            {issue.selector && (
-              <p className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded inline-block">
-                {issue.selector}
-              </p>
-            )}
-
-            {issue.page_url && (
-              <p className="text-xs text-muted-foreground">
-                <Globe className="h-3 w-3 inline mr-1" />
-                {issue.page_url}
-              </p>
-            )}
-
-            {issue.fix_suggestion ? (
-              <div className="mt-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">AI Fix Suggestion</p>
-                    <p className="text-sm text-green-800 dark:text-green-200">{issue.fix_suggestion}</p>
-                  </div>
-                </div>
-              </div>
-            ) : subscriptionPlan === "free" && (
-              <Badge variant="secondary" className="text-xs">
-                <Sparkles className="h-3 w-3 mr-1" />
-                Upgrade for AI fix suggestions
-              </Badge>
-            )}
-
-            {issue.help_url && (
-              <a
-                href={issue.help_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-              >
-                Learn more about this rule
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            )}
-          </div>
+    <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 18, display: "flex", gap: 14, fontFamily: FONT_INTER }}>
+      <span aria-hidden style={{ width: 6, alignSelf: "stretch", borderRadius: 3, background: sev.color, flexShrink: 0 }} />
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 600, color: NAVY, fontSize: 14, fontFamily: FONT_MONO }}>
+            {issue.rule_id}
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 4, background: sev.bg, color: sev.color, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase" }}>
+            {sev.label}
+          </span>
+          {issue.wcag_level && (
+            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 4, background: "rgba(255,255,255,1)", color: wcagLevelColors[issue.wcag_level], border: `1px solid ${wcagLevelColors[issue.wcag_level]}` }}>
+              WCAG {issue.wcag_level}
+            </span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+        <p style={{ fontSize: 13, color: NAVY, margin: 0, lineHeight: 1.55 }}>{issue.rule_description}</p>
+        {issue.impact && (
+          <p style={{ fontSize: 12.5, color: SLATE_500, margin: 0 }}>
+            <strong style={{ color: NAVY }}>Impact:</strong> {issue.impact}
+          </p>
+        )}
+        {issue.html_snippet && (
+          <div style={{ position: "relative" }}>
+            <pre style={{ background: SLATE_50, border: `1px solid ${SLATE_200}`, padding: "10px 12px", borderRadius: 6, fontSize: 11.5, color: NAVY, fontFamily: FONT_MONO, overflowX: "auto", maxHeight: 150, margin: 0 }}>
+              <code>{issue.html_snippet}</code>
+            </pre>
+            <div style={{ position: "absolute", top: 6, right: 6 }}>
+              <CopyCodeButton code={issue.html_snippet} />
+            </div>
+          </div>
+        )}
+        {issue.selector && (
+          <p style={{ fontFamily: FONT_MONO, fontSize: 11.5, color: SLATE_500, background: SLATE_100, padding: "3px 8px", borderRadius: 3, margin: 0, alignSelf: "flex-start" }}>
+            {issue.selector}
+          </p>
+        )}
+        {issue.page_url && (
+          <p style={{ fontSize: 11.5, color: SLATE_500, margin: 0 }}>
+            <span aria-hidden>🌐 </span>{issue.page_url}
+          </p>
+        )}
+        {issue.fix_suggestion ? (
+          <div style={{ background: "rgba(22,163,74,0.06)", border: `1px solid ${GREEN}`, borderRadius: 6, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span aria-hidden style={{ color: GREEN, flexShrink: 0, fontSize: 14 }}>✦</span>
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: GREEN, margin: 0 }}>AI Fix Suggestion</p>
+              <p style={{ fontSize: 12.5, color: NAVY, marginTop: 4, margin: "4px 0 0", lineHeight: 1.5 }}>{issue.fix_suggestion}</p>
+            </div>
+          </div>
+        ) : subscriptionPlan === "free" ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 8px", borderRadius: 4, background: SLATE_100, color: SLATE_500, fontSize: 11, fontWeight: 600, alignSelf: "flex-start" }}>
+            <span aria-hidden>✦</span> Upgrade for AI fix suggestions
+          </span>
+        ) : null}
+        {issue.help_url && (
+          <a
+            href={issue.help_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 12, color: CYAN, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}
+          >
+            Learn more about this rule ↗
+          </a>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -213,7 +271,9 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         );
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -223,8 +283,6 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
           if (profile?.subscription_plan) {
             setSubscriptionPlan(profile.subscription_plan);
           }
-          // Check whether the user has at least one active GitHub App install,
-          // so the auto-fix button can show the right CTA (Connect vs Generate).
           const { data: install } = await supabase
             .from("github_installations")
             .select("id")
@@ -245,15 +303,13 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="flex flex-1 items-center justify-center p-6">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div style={{ padding: 48, textAlign: "center", color: SLATE_500, fontFamily: FONT_INTER }}>
+        Loading...
       </div>
     );
   }
-
   if (!scan) return null;
 
-  // Filter issues
   const filteredIssues = scan.scan_issues.filter((issue) => {
     if (selectedWcagLevel !== "all" && issue.wcag_level !== selectedWcagLevel) return false;
     if (selectedSeverity !== "all" && issue.severity !== selectedSeverity) return false;
@@ -268,77 +324,63 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
     minor: scan.minor_count,
   };
 
-  const getStatusBadge = (status: Scan["status"]) => {
-    switch (status) {
-      case "completed": return <Badge className="bg-green-600">Completed</Badge>;
-      case "pending": return <Badge variant="secondary">Pending</Badge>;
-      case "crawling": return <Badge className="bg-blue-600 text-white">Crawling</Badge>;
-      case "analyzing": return <Badge className="bg-purple-600 text-white">Analyzing</Badge>;
-      case "failed": return <Badge variant="destructive">Failed</Badge>;
-      default: return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{scan.domain}</h1>
-              <Badge variant={scan.scan_type === "deep" ? "default" : "secondary"}>
-                {scan.scan_type === "deep" ? "Deep Scan" : "Quick Scan"}
-              </Badge>
-              {getStatusBadge(scan.status)}
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: "24px 28px 48px", color: NAVY }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0, flex: 1 }}>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Back"
+            style={{ height: 36, width: 36, border: `1px solid ${SLATE_200}`, borderRadius: 6, background: "#fff", color: SLATE_500, cursor: "pointer", fontSize: 16, flexShrink: 0 }}
+          >
+            ←
+          </button>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+              <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 24, lineHeight: 1.1, letterSpacing: "-0.02em", color: NAVY, margin: 0 }}>
+                {scan.domain}
+              </h1>
+              <span style={{ display: "inline-flex", padding: "2px 8px", borderRadius: 4, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase", background: scan.scan_type === "deep" ? "rgba(6,182,212,0.12)" : SLATE_100, color: scan.scan_type === "deep" ? CYAN : SLATE_500 }}>
+                {scan.scan_type === "deep" ? "Deep scan" : "Quick scan"}
+              </span>
+              <StatusPill status={scan.status} />
             </div>
-            <p className="text-sm text-muted-foreground">{scan.url}</p>
-            <p className="text-xs text-muted-foreground">
+            <p style={{ fontFamily: FONT_MONO, fontSize: 12, color: SLATE_500, margin: "6px 0 0" }}>{scan.url}</p>
+            <p style={{ fontSize: 11.5, color: SLATE_400, margin: "4px 0 0", fontFamily: FONT_INTER }}>
               {new Date(scan.created_at).toLocaleDateString()} at {new Date(scan.created_at).toLocaleTimeString()}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push(`/dashboard/scans/new?url=${encodeURIComponent(scan.url)}`)}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Re-scan
-          </Button>
-          <Button variant="outline" asChild>
-            <Link href={`/dashboard/scans/${scan.id}/igts`}>
-              <ClipboardCheck className="mr-2 h-4 w-4" /> Guided Tests
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <a href={`/api/scans/${scan.id}/pdf`} download>
-              <Download className="mr-2 h-4 w-4" /> PDF Report
-            </a>
-          </Button>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <ActionButton onClick={() => router.push(`/dashboard/scans/new?url=${encodeURIComponent(scan.url)}`)}>
+            ↻ Re-scan
+          </ActionButton>
+          <ActionButton href={`/dashboard/scans/${scan.id}/igts`}>
+            ✓ Guided Tests
+          </ActionButton>
+          <ActionButton href={`/api/scans/${scan.id}/pdf`} download>
+            ↓ PDF Report
+          </ActionButton>
           {subscriptionPlan !== "free" ? (
             <>
-              <Button variant="outline" asChild>
-                <a href={`/api/scans/${scan.id}/vpat`} download>
-                  <FileBadge className="mr-2 h-4 w-4" /> VPAT 2.5
-                </a>
-              </Button>
-              <Button variant="outline" asChild>
-                <a href={`/api/scans/${scan.id}/vpat?standard=en-301-549`} download>
-                  <FileBadge className="mr-2 h-4 w-4" /> EN 301 549 (EU)
-                </a>
-              </Button>
+              <ActionButton href={`/api/scans/${scan.id}/vpat`} download>
+                📋 VPAT 2.5
+              </ActionButton>
+              <ActionButton href={`/api/scans/${scan.id}/vpat?standard=en-301-549`} download>
+                🇪🇺 EN 301 549
+              </ActionButton>
             </>
           ) : (
-            <Button
-              variant="outline"
+            <ActionButton
               onClick={() => {
                 toast.info("VPAT 2.5 and EN 301 549 exports are on Pro and Agency plans.");
                 router.push("/settings/billing");
               }}
             >
-              <FileBadge className="mr-2 h-4 w-4" /> VPAT / EN 301 549
-              <Badge variant="secondary" className="ml-2 text-[10px]">Pro</Badge>
-            </Button>
+              📋 VPAT / EN 301 549 <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: SLATE_100, color: SLATE_500, marginLeft: 6 }}>PRO</span>
+            </ActionButton>
           )}
           <GenerateFixPRButton
             scanId={scan.id}
@@ -350,257 +392,107 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      {/* Score Overview */}
-      <div className="grid gap-4 md:grid-cols-5">
-        <Card className="flex items-center justify-center py-6">
-          <div className="text-center">
-            <ScoreGauge score={scan.compliance_score} size="lg" />
-            <p className="mt-2 text-sm font-medium">Code Analysis</p>
-          </div>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <Shield className="h-6 w-6 mb-2 text-green-600" />
-            <ScoreGauge score={scan.level_a_score} size="sm" />
-            <p className="mt-2 text-sm font-medium">Level A</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <Shield className="h-6 w-6 mb-2 text-blue-600" />
-            <ScoreGauge score={scan.level_aa_score} size="sm" />
-            <p className="mt-2 text-sm font-medium">Level AA</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <Shield className="h-6 w-6 mb-2 text-purple-600" />
-            <ScoreGauge score={scan.level_aaa_score} size="sm" />
-            <p className="mt-2 text-sm font-medium">Level AAA</p>
-          </CardContent>
-        </Card>
-        <Card className={scan.visual_score !== null ? "border-violet-200 dark:border-violet-800" : ""}>
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <Eye className="h-6 w-6 mb-2 text-violet-600" />
-            <ScoreGauge score={scan.visual_score} size="sm" />
-            <p className="mt-2 text-sm font-medium">Visual AI</p>
-            {scan.visual_score === null && subscriptionPlan === "free" && (
-              <Badge variant="secondary" className="mt-1 text-[10px]">Pro</Badge>
-            )}
-          </CardContent>
-        </Card>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+        <ScoreCard label="Code Analysis" score={scan.compliance_score} large />
+        <ScoreCard label="Level A" score={scan.level_a_score} accent={GREEN} />
+        <ScoreCard label="Level AA" score={scan.level_aa_score} accent="#2563eb" />
+        <ScoreCard label="Level AAA" score={scan.level_aaa_score} accent={VIOLET} />
+        <ScoreCard label="Visual AI" score={scan.visual_score} accent={VIOLET} proGated={scan.visual_score === null && subscriptionPlan === "free"} />
       </div>
 
-      {/* Issue Summary */}
-      <div className="flex gap-4 flex-wrap">
-        {issueCounts.critical > 0 && (
-          <Badge className="text-sm px-3 py-1 bg-red-600">
-            <AlertCircle className="mr-1 h-3 w-3" /> {issueCounts.critical} Critical
-          </Badge>
-        )}
-        {issueCounts.serious > 0 && (
-          <Badge className="text-sm px-3 py-1 bg-orange-600">
-            <AlertTriangle className="mr-1 h-3 w-3" /> {issueCounts.serious} Serious
-          </Badge>
-        )}
-        {issueCounts.moderate > 0 && (
-          <Badge className="text-sm px-3 py-1 bg-yellow-600">
-            <Info className="mr-1 h-3 w-3" /> {issueCounts.moderate} Moderate
-          </Badge>
-        )}
-        {issueCounts.minor > 0 && (
-          <Badge className="text-sm px-3 py-1 bg-blue-600">
-            <CheckCircle className="mr-1 h-3 w-3" /> {issueCounts.minor} Minor
-          </Badge>
-        )}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(["critical", "serious", "moderate", "minor"] as const).map((sev) => {
+          const count = issueCounts[sev];
+          if (count === 0) return null;
+          const cfg = severityConfig[sev];
+          return (
+            <span
+              key={sev}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", borderRadius: 6, background: cfg.bg, color: cfg.color, fontSize: 13, fontWeight: 700, fontFamily: FONT_INTER }}
+            >
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.color }} aria-hidden />
+              {count} {cfg.label}
+            </span>
+          );
+        })}
       </div>
 
-      {/* AI Summary */}
       {scan.ai_summary ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-primary" /> AI Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">{scan.ai_summary}</p>
-          </CardContent>
-        </Card>
-      ) : subscriptionPlan === "free" && (
-        <Card className="border-primary/20">
-          <CardContent className="py-6 text-center">
-            <Sparkles className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold mb-1">Upgrade to Pro for AI Analysis</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Get AI-powered executive summaries and fix suggestions
-            </p>
-            <Button onClick={() => router.push("/settings/billing")}>Upgrade Now</Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Visual AI Analysis */}
-      {scan.scan_visual_issues && scan.scan_visual_issues.length > 0 ? (
-        <Card className="border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Eye className="h-5 w-5 text-violet-600" /> Visual AI Analysis
-              <Badge className="bg-violet-600 text-white text-[10px]">NEW</Badge>
-            </CardTitle>
-            {scan.visual_ai_summary && (
-              <CardDescription className="text-sm leading-relaxed">
-                {scan.visual_ai_summary}
-              </CardDescription>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {scan.scan_visual_issues.map((issue) => {
-                const cat = categoryConfig[issue.category] || { label: issue.category, emoji: "🔍", color: "text-gray-500" };
-                const sev = severityConfig[issue.severity];
-                const SevIcon = sev.icon;
-                return (
-                  <div key={issue.id} className="flex items-start gap-3 p-3 rounded-lg bg-white dark:bg-gray-900 border">
-                    <SevIcon className={`h-5 w-5 mt-0.5 shrink-0 ${sev.color}`} />
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{issue.title}</span>
-                        <Badge className={sev.badgeClass}>{sev.label}</Badge>
-                        <Badge variant="outline" className="text-[10px]">
-                          {cat.emoji} {cat.label}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{issue.description}</p>
-                      {issue.wcag_criteria && (
-                        <p className="text-xs text-muted-foreground">
-                          <strong>WCAG:</strong> {issue.wcag_criteria}
-                        </p>
-                      )}
-                      {issue.location && (
-                        <p className="text-xs text-muted-foreground">
-                          <Globe className="h-3 w-3 inline mr-1" />
-                          {issue.location}
-                        </p>
-                      )}
-                      <div className="mt-2 p-2 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded text-sm">
-                        <div className="flex items-start gap-2">
-                          <Sparkles className="h-4 w-4 text-violet-600 shrink-0 mt-0.5" />
-                          <p className="text-violet-900 dark:text-violet-200">{issue.recommendation}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      ) : subscriptionPlan === "free" && (
-        <Card className="border-violet-200 dark:border-violet-800">
-          <CardContent className="py-6 text-center">
-            <Eye className="h-8 w-8 text-violet-600 mx-auto mb-2" />
-            <h3 className="font-semibold mb-1">Visual AI Accessibility Analysis</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Upgrade to Pro to detect visual accessibility issues that code scanners miss — contrast on images, small touch targets, color-only indicators, and more.
-            </p>
-            <Button onClick={() => router.push("/settings/billing")} className="bg-violet-600 hover:bg-violet-700">
-              <Eye className="mr-2 h-4 w-4" /> Unlock Visual AI
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex gap-2 items-center">
-              <span className="text-sm font-medium">WCAG Level:</span>
-              <div className="flex gap-2">
-                {(["all", "A", "AA", "AAA"] as const).map((level) => (
-                  <Button
-                    key={level}
-                    variant={selectedWcagLevel === level ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedWcagLevel(level)}
-                  >
-                    {level === "all" ? "All" : level}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2 items-center">
-              <span className="text-sm font-medium">Severity:</span>
-              <div className="flex gap-2">
-                {(["all", "critical", "serious", "moderate", "minor"] as const).map((sev) => (
-                  <Button
-                    key={sev}
-                    variant={selectedSeverity === sev ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedSeverity(sev)}
-                  >
-                    {sev === "all" ? "All" : sev.charAt(0).toUpperCase() + sev.slice(1)}
-                  </Button>
-                ))}
-              </div>
-            </div>
+        <div style={{ background: "rgba(6,182,212,0.06)", border: `1px solid ${CYAN}`, borderRadius: 8, padding: 18, fontFamily: FONT_INTER }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span aria-hidden style={{ color: CYAN, fontSize: 14 }}>✦</span>
+            <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 15, color: NAVY }}>AI Analysis</span>
           </div>
-        </CardContent>
-      </Card>
+          <p style={{ fontSize: 13, color: NAVY, margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{scan.ai_summary}</p>
+        </div>
+      ) : subscriptionPlan === "free" ? (
+        <UpsellCard
+          icon="✦"
+          title="Upgrade to Pro for AI Analysis"
+          subtitle="Get AI-powered executive summaries and fix suggestions"
+          ctaLabel="Upgrade now"
+          onClick={() => router.push("/settings/billing")}
+        />
+      ) : null}
 
-      {/* Deep Scan Pages Tab */}
+      {scan.scan_visual_issues && scan.scan_visual_issues.length > 0 ? (
+        <VisualAISection issues={scan.scan_visual_issues} aiSummary={scan.visual_ai_summary ?? null} />
+      ) : subscriptionPlan === "free" ? (
+        <UpsellCard
+          icon="👁"
+          title="Visual AI Accessibility Analysis"
+          subtitle="Upgrade to Pro to detect visual accessibility issues code scanners miss — image contrast, small touch targets, color-only indicators, and more."
+          ctaLabel="Unlock Visual AI"
+          onClick={() => router.push("/settings/billing")}
+          accent={VIOLET}
+        />
+      ) : null}
+
+      <Filters
+        wcagLevel={selectedWcagLevel}
+        severity={selectedSeverity}
+        onWcag={setSelectedWcagLevel}
+        onSeverity={setSelectedSeverity}
+      />
+
       {scan.scan_type === "deep" && scan.scan_pages && scan.scan_pages.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Scanned Pages ({scan.scan_pages.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {scan.scan_pages.map((page) => (
+        <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 18, fontFamily: FONT_INTER }}>
+          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 15, color: NAVY, marginBottom: 12 }}>
+            Scanned pages ({scan.scan_pages.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {scan.scan_pages.map((p) => {
+              const active = selectedPage === p.url;
+              return (
                 <button
-                  key={page.id}
-                  onClick={() => setSelectedPage(selectedPage === page.url ? null : page.url)}
-                  className={`w-full text-left p-3 rounded border transition-colors ${
-                    selectedPage === page.url
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  }`}
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPage(active ? null : p.url)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "10px 12px", border: `1px solid ${active ? NAVY : SLATE_200}`, borderRadius: 6, background: active ? SLATE_50 : "#fff", cursor: "pointer", fontFamily: FONT_INTER, textAlign: "left" }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium truncate flex-1">{page.url}</span>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <Badge variant="secondary">{page.issue_count} issues</Badge>
-                      <span className={`text-sm font-bold ${
-                        (page.score ?? 0) >= 80 ? "text-green-600" :
-                        (page.score ?? 0) >= 50 ? "text-yellow-600" : "text-red-600"
-                      }`}>
-                        {page.score ?? "—"}
-                      </span>
-                    </div>
-                  </div>
+                  <span style={{ fontSize: 12.5, color: NAVY, fontFamily: FONT_MONO, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{p.url}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11.5, color: SLATE_500 }}>{p.issue_count} issues</span>
+                    <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 16, color: (p.score ?? 0) >= 80 ? GREEN : (p.score ?? 0) >= 50 ? "#ca8a04" : RED }}>
+                      {p.score ?? "—"}
+                    </span>
+                  </span>
                 </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {/* Issues List */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">
-          Issues Found ({filteredIssues.length})
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 17, color: NAVY, margin: "0 0 12px" }}>
+          Issues found <span style={{ color: SLATE_500, fontWeight: 500 }}>({filteredIssues.length})</span>
         </h2>
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filteredIssues.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No issues found matching your filters
-              </CardContent>
-            </Card>
+            <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 32, textAlign: "center", color: SLATE_500, fontFamily: FONT_INTER, fontSize: 13.5 }}>
+              No issues match your filters.
+            </div>
           ) : (
             filteredIssues.map((issue) => (
               <IssueCard key={issue.id} issue={issue} subscriptionPlan={subscriptionPlan} />
@@ -609,5 +501,184 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
     </div>
+  );
+}
+
+function ScoreCard({
+  label,
+  score,
+  large,
+  accent,
+  proGated,
+}: {
+  label: string;
+  score: number | null;
+  large?: boolean;
+  accent?: string;
+  proGated?: boolean;
+}) {
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: FONT_INTER }}>
+      <ScoreGauge score={score} size={large ? "lg" : "sm"} />
+      <p style={{ fontSize: 12, fontWeight: 600, color: accent ?? NAVY, margin: 0, textAlign: "center" }}>
+        {label}
+      </p>
+      {proGated && (
+        <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: SLATE_100, color: SLATE_500 }}>
+          PRO
+        </span>
+      )}
+    </div>
+  );
+}
+
+function UpsellCard({
+  icon,
+  title,
+  subtitle,
+  ctaLabel,
+  onClick,
+  accent = CYAN,
+}: {
+  icon: string;
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  onClick: () => void;
+  accent?: string;
+}) {
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${accent}`, borderRadius: 8, padding: 24, textAlign: "center", fontFamily: FONT_INTER }}>
+      <div style={{ fontSize: 24, color: accent }} aria-hidden>{icon}</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, color: NAVY, marginTop: 8 }}>
+        {title}
+      </div>
+      <p style={{ fontSize: 13, color: SLATE_500, marginTop: 6, marginBottom: 14, maxWidth: 520, marginLeft: "auto", marginRight: "auto" }}>
+        {subtitle}
+      </p>
+      <button
+        type="button"
+        onClick={onClick}
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, height: 38, padding: "0 16px", fontSize: 13.5, fontWeight: 600, fontFamily: FONT_INTER, borderRadius: 6, background: accent, color: "#fff", border: "none", cursor: "pointer" }}
+      >
+        {ctaLabel}
+      </button>
+    </div>
+  );
+}
+
+function VisualAISection({
+  issues,
+  aiSummary,
+}: {
+  issues: ScanVisualIssue[];
+  aiSummary: string | null;
+}) {
+  return (
+    <div style={{ background: "rgba(124,58,237,0.05)", border: `1px solid ${VIOLET}`, borderRadius: 8, padding: 20, fontFamily: FONT_INTER }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span aria-hidden style={{ color: VIOLET, fontSize: 16 }}>👁</span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, color: NAVY }}>Visual AI Analysis</span>
+        <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: VIOLET, color: "#fff" }}>NEW</span>
+      </div>
+      {aiSummary && (
+        <p style={{ fontSize: 13, color: SLATE_700, margin: "0 0 14px", lineHeight: 1.55 }}>{aiSummary}</p>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {issues.map((issue) => {
+          const sev = severityConfig[issue.severity];
+          return (
+            <div key={issue.id} style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 6, padding: 14, display: "flex", gap: 12 }}>
+              <span aria-hidden style={{ width: 4, alignSelf: "stretch", borderRadius: 2, background: sev.color, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: NAVY, fontSize: 13 }}>{issue.title}</span>
+                  <span style={{ display: "inline-flex", padding: "2px 8px", borderRadius: 4, background: sev.bg, color: sev.color, fontSize: 10.5, fontWeight: 700, letterSpacing: "0.10em", textTransform: "uppercase" }}>
+                    {sev.label}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12.5, color: SLATE_500, margin: "6px 0 0" }}>{issue.description}</p>
+                {issue.wcag_criteria && (
+                  <p style={{ fontSize: 11.5, color: SLATE_500, margin: "4px 0 0" }}>
+                    <strong style={{ color: NAVY }}>WCAG:</strong> {issue.wcag_criteria}
+                  </p>
+                )}
+                {issue.location && (
+                  <p style={{ fontSize: 11.5, color: SLATE_500, margin: "4px 0 0" }}>
+                    🌐 {issue.location}
+                  </p>
+                )}
+                <div style={{ marginTop: 8, padding: "8px 10px", background: "rgba(124,58,237,0.08)", border: `1px solid ${VIOLET}`, borderRadius: 6, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <span aria-hidden style={{ color: VIOLET, flexShrink: 0 }}>✦</span>
+                  <p style={{ fontSize: 12.5, color: NAVY, margin: 0, lineHeight: 1.5 }}>{issue.recommendation}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Filters({
+  wcagLevel,
+  severity,
+  onWcag,
+  onSeverity,
+}: {
+  wcagLevel: "all" | "A" | "AA" | "AAA";
+  severity: "all" | ScanIssue["severity"];
+  onWcag: (l: "all" | "A" | "AA" | "AAA") => void;
+  onSeverity: (s: "all" | ScanIssue["severity"]) => void;
+}) {
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 14, display: "flex", flexWrap: "wrap", gap: 18, fontFamily: FONT_INTER }}>
+      <FilterGroup label="WCAG level">
+        {(["all", "A", "AA", "AAA"] as const).map((l) => (
+          <FilterChip key={l} active={wcagLevel === l} onClick={() => onWcag(l)}>
+            {l === "all" ? "All" : l}
+          </FilterChip>
+        ))}
+      </FilterGroup>
+      <FilterGroup label="Severity">
+        {(["all", "critical", "serious", "moderate", "minor"] as const).map((s) => (
+          <FilterChip key={s} active={severity === s} onClick={() => onSeverity(s)}>
+            {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+          </FilterChip>
+        ))}
+      </FilterGroup>
+    </div>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: SLATE_500, letterSpacing: "0.10em", textTransform: "uppercase" }}>
+        {label}
+      </span>
+      <div style={{ display: "flex", gap: 4 }}>{children}</div>
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ height: 28, padding: "0 10px", fontSize: 12, fontWeight: 600, fontFamily: FONT_INTER, borderRadius: 4, background: active ? NAVY : "#fff", color: active ? "#fff" : NAVY, border: `1px solid ${active ? NAVY : SLATE_300}`, cursor: "pointer" }}
+    >
+      {children}
+    </button>
   );
 }
