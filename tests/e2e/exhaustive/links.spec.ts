@@ -16,6 +16,7 @@ const PUBLIC_ROUTES = [
   "/terms",
   "/privacy",
   "/refund",
+  "/pricing",
   "/why-not-overlays",
   "/overlay-detector",
   "/free/wcag-scanner",

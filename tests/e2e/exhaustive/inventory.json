@@ -43,6 +43,7 @@
       {"path": "/terms", "file": "src/app/(marketing)/terms/page.tsx", "purpose": "Terms of Service"},
       {"path": "/privacy", "file": "src/app/(marketing)/privacy/page.tsx", "purpose": "Privacy Policy"},
       {"path": "/refund", "file": "src/app/(marketing)/refund/page.tsx", "purpose": "Refund Policy"},
+      {"path": "/pricing", "file": "src/app/(marketing)/pricing/page.tsx", "purpose": "Standalone pricing page (5-tier comparison + monthly/annual toggle + procurement FAQ)"},
       {"path": "/why-not-overlays", "file": "src/app/(marketing)/why-not-overlays/page.tsx", "purpose": "Editorial: anti-overlay"},
       {"path": "/overlay-detector", "file": "src/app/(marketing)/overlay-detector/page.tsx", "purpose": "Free tool: detect overlays"},
       {"path": "/free/wcag-scanner", "file": "src/app/(marketing)/free/wcag-scanner/page.tsx", "purpose": "Free tool: WCAG quick scan"}
