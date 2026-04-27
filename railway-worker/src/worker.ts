@@ -201,6 +201,7 @@ async function processQuickScan(scan: PendingScan) {
     level_a_score: scores.levelA,
     level_aa_score: scores.levelAA,
     level_aaa_score: scores.levelAAA,
+    pour_scores: scores.pour,
     total_issues: scores.totalIssues,
     critical_count: scores.criticalCount,
     serious_count: scores.seriousCount,
@@ -220,6 +221,21 @@ async function processQuickScan(scan: PendingScan) {
   });
 
   console.log(`[${scan.id}] Quick scan complete! Code: ${scores.overall}/100, Visual: ${visualScore ?? "N/A"}/100`);
+}
+
+// Tier-aware page caps for deep scans. Free tier never reaches deep but
+// the floor stays for safety. Business + Agency get the higher cap.
+function deepScanPageCap(plan: string | null | undefined): number {
+  switch ((plan ?? "free").toLowerCase()) {
+    case "business":
+    case "agency":
+      return 50;
+    case "pro":
+      return 25;
+    case "free":
+    default:
+      return 10;
+  }
 }
 
 async function processDeepScan(scan: PendingScan) {
@@ -242,10 +258,12 @@ async function processDeepScan(scan: PendingScan) {
   await mainPage.close();
   await updateScan(scan.id, { progress: 15 });
 
-  const internalLinks = extractInternalLinks(html, scan.url);
-  const pagesToScan = [scan.url, ...internalLinks]; // Up to 10 total
+  const profile = await getProfile(scan.user_id);
+  const cap = deepScanPageCap(profile?.subscription_plan);
+  const internalLinks = extractInternalLinks(html, scan.url, cap - 1);
+  const pagesToScan = [scan.url, ...internalLinks];
   console.log(
-    `[${scan.id}] Found ${internalLinks.length} internal links, scanning ${pagesToScan.length} pages total`,
+    `[${scan.id}] Plan=${profile?.subscription_plan ?? "free"} cap=${cap} found ${internalLinks.length} internal links, scanning ${pagesToScan.length} pages total`,
   );
 
   // Insert scan_pages records
@@ -342,8 +360,7 @@ async function processDeepScan(scan: PendingScan) {
 
   await updateScan(scan.id, { progress: 75 });
 
-  // 5. AI analysis (75-95%) — paid only
-  const profile = await getProfile(scan.user_id);
+  // 5. AI analysis (75-95%) — paid only (reuses `profile` resolved earlier for cap)
   let aiSummary: string | null = null;
   let aiRecommendations: any[] | null = null;
 
@@ -426,6 +443,7 @@ async function processDeepScan(scan: PendingScan) {
     level_a_score: aggregateScores.levelA,
     level_aa_score: aggregateScores.levelAA,
     level_aaa_score: aggregateScores.levelAAA,
+    pour_scores: aggregateScores.pour,
     total_issues: deduped.length,
     critical_count: aggregateScores.criticalCount,
     serious_count: aggregateScores.seriousCount,

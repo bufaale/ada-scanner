@@ -5,6 +5,13 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { DeleteAccountButton } from "@/components/settings/delete-account-button";
 
+/**
+ * /settings remains the legacy thin profile route. The richer profile UX
+ * (header, role pill, notifications, security, danger zone) lives at
+ * /settings/profile. This page is kept as a thin compatibility shim so that
+ * existing inbound links + smoke tests continue to work — sidebar and
+ * top-nav have been updated to point at /settings/profile directly.
+ */
 const FONT_DISPLAY = "var(--font-display), sans-serif";
 const FONT_INTER = "var(--font-inter), sans-serif";
 const NAVY = "#0b1f3a";
@@ -90,7 +97,10 @@ export default function SettingsPage() {
           Profile settings
         </h1>
         <p style={{ fontSize: 13.5, color: SLATE_500, marginTop: 4, fontFamily: FONT_INTER }}>
-          Manage your account information.
+          Manage your account information.{" "}
+          <a href="/settings/profile" style={{ color: "#06b6d4", fontWeight: 600 }}>
+            Open the full profile experience →
+          </a>
         </p>
       </div>
 
@@ -116,12 +126,13 @@ export default function SettingsPage() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
+                aria-label="Full Name"
                 style={inputStyle}
               />
             </Field>
 
             <Field label="Email" htmlFor="email" hint="Email cannot be changed here">
-              <input id="email" value={email} disabled placeholder="you@example.com" aria-label="Account email (read-only)" style={disabledInputStyle} />
+              <input id="email" value={email} disabled placeholder="you@example.com" aria-label="Email" style={disabledInputStyle} />
             </Field>
 
             <Field label="Avatar URL" htmlFor="avatarUrl">

@@ -16,14 +16,45 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase
-    .from("monitored_sites")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const [sitesRes, profileRes, snapsRes] = await Promise.all([
+    supabase
+      .from("monitored_sites")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("profiles")
+      .select("subscription_plan")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("scan_snapshots")
+      .select("monitored_site_id, score, created_at")
+      .eq("user_id", user.id)
+      .gte("created_at", since)
+      .order("created_at", { ascending: true }),
+  ]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ sites: data ?? [] });
+  if (sitesRes.error) {
+    return NextResponse.json({ error: sitesRes.error.message }, { status: 500 });
+  }
+
+  const plan = (profileRes.data?.subscription_plan ?? "free").toLowerCase();
+  const siteList = sitesRes.data ?? [];
+
+  const byId = new Map<string, Array<{ score: number; t: string }>>();
+  for (const s of snapsRes.data ?? []) {
+    const arr = byId.get(s.monitored_site_id) ?? [];
+    arr.push({ score: s.score, t: s.created_at });
+    byId.set(s.monitored_site_id, arr);
+  }
+  const enriched = siteList.map((site) => ({
+    ...site,
+    sparkline: byId.get(site.id) ?? [],
+  }));
+
+  return NextResponse.json({ sites: enriched, plan });
 }
 
 export async function POST(req: Request) {

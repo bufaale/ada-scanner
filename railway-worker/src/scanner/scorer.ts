@@ -1,5 +1,5 @@
 import type { AxeResults } from "./axe-runner.js";
-import { getWcagLevel } from "./wcag-mapper.js";
+import { getWcagLevel, getWcagPrinciple, type Principle } from "./wcag-mapper.js";
 
 const SEVERITY_WEIGHTS: Record<string, number> = {
   critical: 4,
@@ -8,11 +8,19 @@ const SEVERITY_WEIGHTS: Record<string, number> = {
   minor: 1,
 };
 
+export interface PourScores {
+  perceivable: number;
+  operable: number;
+  understandable: number;
+  robust: number;
+}
+
 export interface ScanScores {
   overall: number;
   levelA: number;
   levelAA: number;
   levelAAA: number;
+  pour: PourScores;
   criticalCount: number;
   seriousCount: number;
   moderateCount: number;
@@ -61,17 +69,37 @@ export function calculateScores(results: AxeResults): ScanScores {
   const levelAA = calculateLevelScore(results, "AA");
   const levelAAA = calculateLevelScore(results, "AAA");
 
+  // POUR per-principle scores
+  const pour: PourScores = {
+    perceivable: calculatePrincipleScore(results, "P"),
+    operable: calculatePrincipleScore(results, "O"),
+    understandable: calculatePrincipleScore(results, "U"),
+    robust: calculatePrincipleScore(results, "R"),
+  };
+
   return {
     overall,
     levelA,
     levelAA,
     levelAAA,
+    pour,
     criticalCount,
     seriousCount,
     moderateCount,
     minorCount,
     totalIssues,
   };
+}
+
+function calculatePrincipleScore(results: AxeResults, principle: Principle): number {
+  const passes = results.passes.filter((p) => getWcagPrinciple(p.tags) === principle);
+  const violations = results.violations.filter((v) => getWcagPrinciple(v.tags) === principle);
+
+  const passCount = passes.reduce((sum, p) => sum + p.nodes.length, 0);
+  const violationCount = violations.reduce((sum, v) => sum + v.nodes.length, 0);
+  const total = passCount + violationCount;
+
+  return total > 0 ? Math.round((passCount / total) * 100) : 100;
 }
 
 function calculateLevelScore(results: AxeResults, level: "A" | "AA" | "AAA"): number {

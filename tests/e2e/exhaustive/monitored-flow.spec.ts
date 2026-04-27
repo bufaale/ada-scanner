@@ -1,14 +1,14 @@
 /**
  * monitored-flow.spec.ts — baseline contract tests for /dashboard/monitored.
  *
- * Locks the form behavior before the v2 swap. The contract:
- *  - Page loads (any tier — gating is handled by API not page render)
- *  - Required form fields are present (URL, label, cadence, alert email,
- *    threshold) and submit
- *  - Empty submit is blocked (HTML5 required on URL field)
+ * Updated for the v2 rich-grid layout (A3): the "Add site" form lives inside
+ * a modal that opens on the "Add site" CTA click. Free users see only the
+ * upsell banner; Business users see the grid + KPI strip + Add-site CTA.
  *
- * Tier gating is API-side: free user POSTing to /api/monitored gets 402.
- * The UI exposes the form regardless and surfaces the error after submit.
+ * Contract:
+ *  - Page renders heading for any tier (the page itself is not gated)
+ *  - Free users see the upsell banner, NOT the Add-site form
+ *  - Business users can open the Add-site modal and submit a URL → POST fires
  */
 import { test, expect } from "@playwright/test";
 import {
@@ -17,61 +17,55 @@ import {
   loginViaUI,
 } from "../../helpers/test-utils";
 
-test.describe("Monitored sites — pre-swap contract", () => {
-  test("page renders heading + add-site form for any tier", async ({ page }) => {
+test.describe("Monitored sites — page contract", () => {
+  test("page renders heading for any tier (free)", async ({ page }) => {
     const u = await createTestUser("monitored-render", "free");
     try {
       await loginViaUI(page, u.email);
       await page.goto("/dashboard/monitored");
       await page.waitForLoadState("networkidle");
 
-      await expect(page.getByRole("heading").first()).toBeVisible({ timeout: 10_000 });
-
-      // URL input must be present (placeholder hint)
       await expect(
-        page.locator("input[placeholder*='example' i]").first(),
-      ).toBeVisible();
+        page.getByRole("heading", { name: /monitored sites/i, level: 1 }),
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Free user sees the upsell banner, not the grid
+      await expect(page.getByTestId("monitored-upsell")).toBeVisible();
+      await expect(page.getByTestId("monitored-grid")).toHaveCount(0);
     } finally {
       await deleteTestUser(u.id);
     }
   });
 
-  test("submit triggers POST /api/monitored when URL is filled", async ({
+  test("business user can open Add-site modal and submit triggers POST /api/monitored", async ({
     page,
   }) => {
-    const u = await createTestUser("monitored-submit", "free");
+    const u = await createTestUser("monitored-submit", "business");
     try {
-      let postReceived = false;
-      await page.route("**/api/monitored", async (route) => {
-        if (route.request().method() === "POST") {
-          postReceived = true;
-          await route.fulfill({
-            status: 402,
-            contentType: "application/json",
-            body: JSON.stringify({ error: "Business plan required" }),
-          });
-          return;
-        }
-        route.continue();
-      });
-
       await loginViaUI(page, u.email);
       await page.goto("/dashboard/monitored");
       await page.waitForLoadState("networkidle");
 
-      const urlInput = page.locator("input[placeholder*='example' i]").first();
+      // Open the Add-site modal via the page-header CTA
+      await page
+        .getByRole("button", { name: /^add site$/i })
+        .first()
+        .click();
+
+      const urlInput = page.locator("#monitored-url");
+      await expect(urlInput).toBeVisible({ timeout: 5_000 });
       await urlInput.fill("https://monitored-flow-test.example.com");
 
-      const submitBtn = page
-        .getByRole("button", { name: /add.*monitor|monitor|add\b/i })
-        .first();
       const postPromise = page.waitForRequest(
         (req) => req.url().includes("/api/monitored") && req.method() === "POST",
-        { timeout: 8_000 },
+        { timeout: 10_000 },
       );
-      await submitBtn.click();
-      await postPromise;
-      expect(postReceived).toBe(true);
+      await page
+        .getByRole("button", { name: /start monitoring/i })
+        .first()
+        .click();
+      const req = await postPromise;
+      expect(req.method()).toBe("POST");
     } finally {
       await deleteTestUser(u.id);
     }

@@ -6,6 +6,30 @@ export function getWcagLevel(tags: string[]): "A" | "AA" | "AAA" | null {
   return null; // best-practice or untagged
 }
 
+export type Principle = "P" | "O" | "U" | "R";
+
+// WCAG numbering: 1.x.x Perceivable, 2.x.x Operable, 3.x.x Understandable,
+// 4.x.x Robust. axe-core surfaces tags like `wcag111` (1.1.1) so we read
+// the first numeric digit after the `wcag` (and optional `2`/`21`/`22`) prefix.
+export function getWcagPrinciple(tags: string[]): Principle | null {
+  const pattern = /^wcag2?1?2?2?(\d)\d{2}$/i;
+  for (const t of tags) {
+    const m = t.match(pattern);
+    if (!m) continue;
+    switch (m[1]) {
+      case "1":
+        return "P";
+      case "2":
+        return "O";
+      case "3":
+        return "U";
+      case "4":
+        return "R";
+    }
+  }
+  return null;
+}
+
 export function getSeverityOrder(impact: string): number {
   switch (impact) {
     case "critical":

@@ -1,3 +1,10 @@
+export interface NotificationPreferences {
+  scan_complete: boolean;
+  weekly_summary: boolean;
+  compliance_alerts: boolean;
+  marketing_emails: boolean;
+}
+
 export interface Profile {
   id: string;
   email: string;
@@ -8,6 +15,10 @@ export interface Profile {
   subscription_plan: string;
   api_key: string | null;
   role: string;
+  company: string | null;
+  country: string | null;
+  timezone: string | null;
+  notification_preferences: NotificationPreferences;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +48,7 @@ export interface Scan {
   level_a_score: number | null;
   level_aa_score: number | null;
   level_aaa_score: number | null;
+  pour_scores: { perceivable: number; operable: number; understandable: number; robust: number } | null;
   total_issues: number;
   critical_count: number;
   serious_count: number;

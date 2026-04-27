@@ -13,6 +13,7 @@ import {
   Activity,
   FileText,
   Github,
+  Key,
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,9 +39,10 @@ const mainNav = [
 ];
 
 const settingsNav = [
-  { title: "Profile", href: "/settings", icon: User },
+  { title: "Profile", href: "/settings/profile", icon: User },
   { title: "Billing", href: "/settings/billing", icon: CreditCard },
   { title: "GitHub Auto-Fix", href: "/settings/github", icon: Github },
+  { title: "API Keys", href: "/settings/api-keys", icon: Key },
 ];
 
 export function AppSidebar() {

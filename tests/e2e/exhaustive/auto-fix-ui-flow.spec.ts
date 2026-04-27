@@ -104,22 +104,23 @@ test.describe("Auto-Fix PR — full UI flow", () => {
       await page.goto(`/dashboard/scans/${scan.id}`);
       await page.waitForLoadState("networkidle");
 
-      // The button label is "Generate fix PR (1)" since fixableCount=1
-      const triggerButton = page
-        .getByRole("button", { name: /generate\s*fix\s*pr/i })
-        .first();
+      // A5 PR Panel flow: button label is "Open Auto-Fix PR · 1 fix" since
+      // fixableCount=1. Click opens the right-side PR Panel sidebar (NOT
+      // a dialog like in the previous Generate fix PR design).
+      const triggerButton = page.locator("[data-testid='open-pr-panel']").first();
       await expect(triggerButton).toBeVisible({ timeout: 15_000 });
       await expect(triggerButton).toBeEnabled();
-      await expect(triggerButton).toContainText(/\(\s*1\s*\)/);
+      await expect(triggerButton).toContainText(/auto[-\s]?fix\s*pr/i);
+      await expect(triggerButton).toContainText(/\b1\s*fix\b/i);
       await triggerButton.click();
 
-      // Dialog opens — fill repo input
-      const repoInput = page.getByLabel(/target\s*repository/i).first();
+      // Panel opens — fill repo input (it's inside the panel's RepoBar)
+      const repoInput = page.locator("#prpanel-repo");
       await expect(repoInput).toBeVisible({ timeout: 5_000 });
       await repoInput.fill(TEST_REPO);
 
-      // Click "Open PR" submit (NOT the trigger button)
-      const submitBtn = page.getByRole("button", { name: /^open\s*pr$|generating/i }).first();
+      // Click "Open PR on GitHub" in the panel footer
+      const submitBtn = page.getByRole("button", { name: /^open\s*pr\s*on\s*github$|generating/i }).first();
 
       // Capture the API response so we can grab prUrl + branch for cleanup
       const apiResponsePromise = page.waitForResponse(
@@ -140,8 +141,8 @@ test.describe("Auto-Fix PR — full UI flow", () => {
       createdPrNumber = prMatch ? Number(prMatch[1]) : null;
       createdBranchName = branch ?? null;
 
-      // The dialog UI should now show the success state with "PR opened ✓"
-      // and a "View on GitHub" link
+      // The panel footer should now show the success state with
+      // "PR opened on GitHub" + "View on GitHub" link
       await expect(page.getByText(/PR opened/i).first()).toBeVisible({
         timeout: 10_000,
       });
