@@ -2,15 +2,36 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 import { DeleteAccountButton } from "@/components/settings/delete-account-button";
-import type { Profile } from "@/types/database";
+
+const FONT_DISPLAY = "var(--font-display), sans-serif";
+const FONT_INTER = "var(--font-inter), sans-serif";
+const NAVY = "#0b1f3a";
+const SLATE_50 = "#f8fafc";
+const SLATE_100 = "#f1f5f9";
+const SLATE_200 = "#e2e8f0";
+const SLATE_300 = "#cbd5e1";
+const SLATE_500 = "#64748b";
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  height: 40,
+  padding: "0 14px",
+  border: `1px solid ${SLATE_200}`,
+  borderRadius: 6,
+  fontSize: 13.5,
+  fontFamily: FONT_INTER,
+  color: NAVY,
+  background: "#fff",
+  outline: "none",
+};
+
+const disabledInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  background: SLATE_50,
+  color: SLATE_500,
+};
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -23,46 +44,37 @@ export default function SettingsPage() {
   useEffect(() => {
     async function loadProfile() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
-
       setUserId(user.id);
       setEmail(user.email || "");
-
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
-
       if (profile) {
         setFullName(profile.full_name || "");
         setAvatarUrl(profile.avatar_url || "");
       }
-
       setLoading(false);
     }
-
     loadProfile();
   }, []);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-
     if (!userId) return;
-
     setSaving(true);
-
     try {
       const supabase = createClient();
       const { error } = await supabase
         .from("profiles")
         .update({ full_name: fullName, avatar_url: avatarUrl })
         .eq("id", userId);
-
       if (error) throw error;
-
       toast.success("Profile updated successfully");
     } catch {
       toast.error("Failed to update profile");
@@ -71,83 +83,89 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-9 w-48" />
-          <Skeleton className="mt-2 h-5 w-64" />
-        </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-24" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: "24px 28px 48px", color: NAVY }}>
       <div>
-        <h1 className="text-3xl font-bold">Profile Settings</h1>
-        <p className="mt-1 text-muted-foreground">
-          Manage your account information
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 28, lineHeight: 1.1, letterSpacing: "-0.02em", color: NAVY, margin: 0 }}>
+          Profile settings
+        </h1>
+        <p style={{ fontSize: 13.5, color: SLATE_500, marginTop: 4, fontFamily: FONT_INTER }}>
+          Manage your account information.
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>Update your personal information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
+
+      <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 24, maxWidth: 640 }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 16, color: NAVY, marginBottom: 4 }}>
+          Profile
+        </div>
+        <p style={{ fontSize: 12.5, color: SLATE_500, fontFamily: FONT_INTER, marginTop: 0, marginBottom: 18 }}>
+          Update your personal information.
+        </p>
+
+        {loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[0, 1, 2].map((i) => (
+              <div key={i} style={{ height: 40, background: SLATE_100, borderRadius: 6 }} aria-hidden />
+            ))}
+          </div>
+        ) : (
+          <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Field label="Full name" htmlFor="fullName">
+              <input
                 id="fullName"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
+                style={inputStyle}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={email}
-                disabled
-                className="bg-muted"
-              />
-              <p className="text-xs text-muted-foreground">
-                Email cannot be changed here
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Avatar URL</Label>
-              <Input
+            </Field>
+
+            <Field label="Email" htmlFor="email" hint="Email cannot be changed here">
+              <input id="email" value={email} disabled placeholder="you@example.com" aria-label="Account email (read-only)" style={disabledInputStyle} />
+            </Field>
+
+            <Field label="Avatar URL" htmlFor="avatarUrl">
+              <input
                 id="avatarUrl"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 placeholder="https://example.com/avatar.png"
+                style={inputStyle}
               />
-            </div>
-            <Button type="submit" disabled={saving}>
-              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {saving ? "Saving..." : "Save Changes"}
-            </Button>
+            </Field>
+
+            <button
+              type="submit"
+              disabled={saving}
+              style={{ alignSelf: "flex-start", marginTop: 6, height: 40, padding: "0 18px", fontSize: 14, fontWeight: 600, fontFamily: FONT_INTER, borderRadius: 6, background: saving ? SLATE_300 : NAVY, color: "#fff", border: "none", cursor: saving ? "not-allowed" : "pointer" }}
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
           </form>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       <DeleteAccountButton />
     </div>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label htmlFor={htmlFor} style={{ display: "block", fontFamily: FONT_INTER }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: NAVY, marginBottom: 6 }}>{label}</div>
+      {children}
+      {hint && <div style={{ fontSize: 11.5, color: SLATE_500, marginTop: 4 }}>{hint}</div>}
+    </label>
   );
 }
