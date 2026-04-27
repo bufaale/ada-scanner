@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 const FONT_DISPLAY = "var(--font-display), sans-serif";
 const FONT_INTER = "var(--font-inter), sans-serif";
+const FONT_MONO = "var(--font-mono), ui-monospace, monospace";
 const NAVY = "#0b1f3a";
 const RED = "#dc2626";
 const RED_700 = "#b91c1c";
@@ -14,6 +15,68 @@ const SLATE_300 = "#cbd5e1";
 const SLATE_500 = "#64748b";
 const CYAN_50 = "#ecfeff";
 const CYAN_500 = "#06b6d4";
+
+const DOJ_TARGET_MS = new Date("2027-04-26T00:00:00Z").getTime();
+
+function calcDaysRemaining(): number {
+  return Math.max(0, Math.round((DOJ_TARGET_MS - Date.now()) / 86400000));
+}
+
+function DojDeadlineStrip() {
+  // Render a stable initial value on the server (computed at module load) and
+  // update once mounted on the client. Avoids hydration mismatch from clock skew.
+  const [days, setDays] = useState<number>(() => calcDaysRemaining());
+
+  useEffect(() => {
+    setDays(calcDaysRemaining());
+    // Re-compute every minute — a daily countdown doesn't need 1s precision.
+    const id = setInterval(() => setDays(calcDaysRemaining()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div
+      role="status"
+      aria-label="Federal accessibility deadline countdown"
+      style={{
+        background: RED,
+        color: "#fff",
+        fontFamily: FONT_INTER,
+        fontSize: 13,
+        fontWeight: 500,
+        textAlign: "center",
+        padding: "10px 16px",
+        borderRadius: 8,
+        letterSpacing: "0.005em",
+        lineHeight: 1.45,
+      }}
+    >
+      <strong style={{ fontWeight: 700 }}>
+        Federal accessibility deadline:
+      </strong>{" "}
+      April 26, 2027
+      <span aria-hidden="true" style={{ margin: "0 8px", opacity: 0.7 }}>
+        ·
+      </span>
+      <span
+        data-testid="doj-days-remaining"
+        style={{
+          fontFamily: FONT_MONO,
+          fontFeatureSettings: '"tnum" 1',
+          fontWeight: 700,
+          color: NAVY,
+          background: "#fff",
+          padding: "1px 8px",
+          borderRadius: 4,
+          marginRight: 6,
+        }}
+      >
+        {days}
+      </span>
+      days remaining
+    </div>
+  );
+}
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -42,7 +105,9 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 32, fontFamily: FONT_INTER }}>
+    <>
+      <DojDeadlineStrip />
+      <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 32, fontFamily: FONT_INTER, marginTop: 16 }}>
       <div style={{ textAlign: "center", marginBottom: 24 }}>
         <h1 style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 24, lineHeight: 1.1, letterSpacing: "-0.02em", color: NAVY, margin: 0 }}>
           Reset your password
@@ -95,6 +160,7 @@ export function ForgotPasswordForm() {
           Sign in
         </Link>
       </p>
-    </div>
+      </div>
+    </>
   );
 }
