@@ -1,27 +1,5 @@
-import { TitleIIBanner } from "@/components/landing/title-ii-banner";
-import { Hero } from "@/components/landing/hero";
-import { TrustStrip } from "@/components/landing/trust-strip";
-import { Stats } from "@/components/landing/stats";
-import { ProductTruth } from "@/components/landing/product-truth";
-import { Comparison } from "@/components/landing/comparison";
-import { RoiCalculator } from "@/components/landing/roi-calculator";
-import { GovCTA } from "@/components/landing/gov-cta";
-import { Pricing } from "@/components/landing/pricing";
-import { FinalCTA } from "@/components/landing/final-cta";
-
-export default function HomePage() {
-  return (
-    <>
-      <TitleIIBanner />
-      <Hero />
-      <TrustStrip />
-      <Stats />
-      <ProductTruth />
-      <Comparison />
-      <RoiCalculator />
-      <GovCTA />
-      <Pricing />
-      <FinalCTA />
-    </>
-  );
-}
+// Landing page: serves the Claude Design v2 layout from ./v2/page.tsx.
+// The v2 directory remains accessible at /v2 as a backup for visual rollback
+// during the design refresh window. Once the new design is confirmed stable
+// in production, the v2 directory can be merged into this file and removed.
+export { default, metadata } from "./v2/page";
