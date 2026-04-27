@@ -6,7 +6,21 @@ import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import { toast } from "sonner";
 import { GenerateFixPRButton } from "@/components/auto-fix/generate-pr-button";
+import { PRPanel } from "@/components/auto-fix/pr-panel";
 import type { Scan, ScanIssue, ScanPage, ScanVisualIssue } from "@/types/database";
+
+// Same SAFE_RULES as in pr-panel.tsx + generate-pr-button.tsx — used to
+// know which issues can show an inline "Fix in PR" button.
+const SAFE_RULES = new Set([
+  "image-alt",
+  "label",
+  "form-field-multiple-labels",
+  "link-name",
+  "button-name",
+  "html-has-lang",
+  "html-lang-valid",
+  "meta-viewport",
+]);
 
 const FONT_DISPLAY = "var(--font-display), sans-serif";
 const FONT_INTER = "var(--font-inter), sans-serif";
@@ -175,8 +189,17 @@ function ActionButton({
   );
 }
 
-function IssueCard({ issue, subscriptionPlan }: { issue: ScanIssue; subscriptionPlan: string }) {
+function IssueCard({
+  issue,
+  subscriptionPlan,
+  onFixInPR,
+}: {
+  issue: ScanIssue;
+  subscriptionPlan: string;
+  onFixInPR?: (issueId: string) => void;
+}) {
   const sev = severityConfig[issue.severity];
+  const isFixable = SAFE_RULES.has(issue.rule_id);
   return (
     <div style={{ background: "#fff", border: `1px solid ${SLATE_200}`, borderRadius: 8, padding: 18, display: "flex", gap: 14, fontFamily: FONT_INTER }}>
       <span aria-hidden style={{ width: 6, alignSelf: "stretch", borderRadius: 3, background: sev.color, flexShrink: 0 }} />
@@ -243,6 +266,32 @@ function IssueCard({ issue, subscriptionPlan }: { issue: ScanIssue; subscription
             Learn more about this rule ↗
           </a>
         )}
+        {isFixable && onFixInPR && (
+          <button
+            type="button"
+            onClick={() => onFixInPR(issue.id)}
+            data-fix-in-pr
+            data-issue-id={issue.id}
+            style={{
+              alignSelf: "flex-start",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              height: 30,
+              padding: "0 10px",
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: FONT_INTER,
+              borderRadius: 5,
+              background: CYAN,
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            ✦ Fix in PR
+          </button>
+        )}
       </div>
     </div>
   );
@@ -258,6 +307,13 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
   const [selectedWcagLevel, setSelectedWcagLevel] = useState<"all" | "A" | "AA" | "AAA">("all");
   const [selectedSeverity, setSelectedSeverity] = useState<"all" | ScanIssue["severity"]>("all");
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [panelInitialIssueId, setPanelInitialIssueId] = useState<string | null>(null);
+
+  function openPanelWith(issueId?: string | null) {
+    setPanelInitialIssueId(issueId ?? null);
+    setPanelOpen(true);
+  }
 
   useEffect(() => {
     async function load() {
@@ -324,8 +380,21 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
     minor: scan.minor_count,
   };
 
+  const fixableCount = scan.scan_issues.filter((i) => SAFE_RULES.has(i.rule_id)).length;
+  const showPanel = panelOpen && fixableCount > 0;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, padding: "24px 28px 48px", color: NAVY }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: showPanel ? "1fr 420px" : "1fr",
+        gap: 18,
+        padding: "24px 28px 48px",
+        color: NAVY,
+        alignItems: "start",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, minWidth: 0, flex: 1 }}>
           <button
@@ -382,13 +451,39 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
               📋 VPAT / EN 301 549 <span style={{ fontSize: 9.5, fontWeight: 700, padding: "1px 5px", borderRadius: 3, background: SLATE_100, color: SLATE_500, marginLeft: 6 }}>PRO</span>
             </ActionButton>
           )}
-          <GenerateFixPRButton
-            scanId={scan.id}
-            issueIds={scan.scan_issues.map((i) => i.id)}
-            issueRules={scan.scan_issues.map((i) => i.rule_id)}
-            isBusinessTier={subscriptionPlan === "business"}
-            hasGithubInstall={hasGithubInstall}
-          />
+          {fixableCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => openPanelWith(null)}
+              data-testid="open-pr-panel"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                height: 36,
+                padding: "0 16px",
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: FONT_INTER,
+                borderRadius: 6,
+                background: CYAN,
+                color: "#fff",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 6px 16px -8px rgba(6,182,212,0.55)",
+              }}
+            >
+              ✦ Open Auto-Fix PR · {fixableCount} {fixableCount === 1 ? "fix" : "fixes"}
+            </button>
+          ) : (
+            <GenerateFixPRButton
+              scanId={scan.id}
+              issueIds={scan.scan_issues.map((i) => i.id)}
+              issueRules={scan.scan_issues.map((i) => i.rule_id)}
+              isBusinessTier={subscriptionPlan === "business"}
+              hasGithubInstall={hasGithubInstall}
+            />
+          )}
         </div>
       </div>
 
@@ -495,11 +590,30 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
             </div>
           ) : (
             filteredIssues.map((issue) => (
-              <IssueCard key={issue.id} issue={issue} subscriptionPlan={subscriptionPlan} />
+              <IssueCard
+                key={issue.id}
+                issue={issue}
+                subscriptionPlan={subscriptionPlan}
+                onFixInPR={(issueId) => openPanelWith(issueId)}
+              />
             ))
           )}
         </div>
       </div>
+      </div>
+
+      {showPanel && (
+        <PRPanel
+          scanId={scan.id}
+          scanDomain={scan.domain ?? scan.url}
+          issues={scan.scan_issues}
+          isBusinessTier={subscriptionPlan === "business"}
+          hasGithubInstall={hasGithubInstall}
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          initialSelectedId={panelInitialIssueId}
+        />
+      )}
     </div>
   );
 }
