@@ -16,14 +16,38 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabase
+  const { data: sites, error } = await supabase
     .from("monitored_sites")
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ sites: data ?? [] });
+
+  const siteList = sites ?? [];
+  if (siteList.length === 0) return NextResponse.json({ sites: [] });
+
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: snaps } = await supabase
+    .from("scan_snapshots")
+    .select("monitored_site_id, score, created_at")
+    .eq("user_id", user.id)
+    .gte("created_at", since)
+    .order("created_at", { ascending: true });
+
+  const byId = new Map<string, Array<{ score: number; t: string }>>();
+  for (const s of snaps ?? []) {
+    const arr = byId.get(s.monitored_site_id) ?? [];
+    arr.push({ score: s.score, t: s.created_at });
+    byId.set(s.monitored_site_id, arr);
+  }
+
+  const enriched = siteList.map((site) => ({
+    ...site,
+    sparkline: byId.get(site.id) ?? [],
+  }));
+
+  return NextResponse.json({ sites: enriched });
 }
 
 export async function POST(req: Request) {

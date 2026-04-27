@@ -53,3 +53,7 @@ stitch-variants/
 CLAUDE.md
 !/CLAUDE.md
 .env.test.local
+
+# Claude Code worktrees + WIP
+.claude/worktrees/
+.claude/wip-backup/
