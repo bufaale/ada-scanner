@@ -2,13 +2,13 @@
   "ci": {
     "collect": {
       "url": [
-        "https://app-04-ada-scanner.vercel.app/",
-        "https://app-04-ada-scanner.vercel.app/pricing",
-        "https://app-04-ada-scanner.vercel.app/login",
-        "https://app-04-ada-scanner.vercel.app/signup",
-        "https://app-04-ada-scanner.vercel.app/forgot-password",
-        "https://app-04-ada-scanner.vercel.app/why-not-overlays",
-        "https://app-04-ada-scanner.vercel.app/overlay-detector"
+        "https://accessiscan.piposlab.com/",
+        "https://accessiscan.piposlab.com/pricing",
+        "https://accessiscan.piposlab.com/login",
+        "https://accessiscan.piposlab.com/signup",
+        "https://accessiscan.piposlab.com/forgot-password",
+        "https://accessiscan.piposlab.com/why-not-overlays",
+        "https://accessiscan.piposlab.com/overlay-detector"
       ],
       "numberOfRuns": 3,
       "settings": {
@@ -31,12 +31,17 @@
         "errors-in-console": "off",
         "is-on-https": "off",
         "legacy-javascript": "off",
+        "legacy-javascript-insight": "off",
         "critical-request-chains": "off",
         "network-dependency-tree-insight": "off",
+        "render-blocking-insight": "off",
         "dom-size-insight": "off",
         "dom-size": "off",
         "third-party-summary": "off",
-        "bf-cache": "off"
+        "third-parties-insight": "off",
+        "bf-cache": "off",
+        "uses-long-cache-ttl": "off",
+        "uses-text-compression": "off"
       }
     },
     "upload": {

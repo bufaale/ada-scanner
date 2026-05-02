@@ -35,22 +35,21 @@ test.describe("Free WCAG scanner — input validation", () => {
     expect(r.status()).toBe(400);
   });
 
-  test.each([
+  for (const url of [
     "not-a-url",
     "ftp://example.com",
     "javascript:alert(1)",
     "data:text/html,<script>",
     "file:///etc/passwd",
-  ])("rejects bad URL: %s", async (url, { context }) => {
-    void context;
-    // Each test gets its own request context via the parent describe
-    const res = await fetch(`${BASE_URL}/api/free/wcag-scan`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url }),
+  ]) {
+    test(`rejects bad URL: ${url}`, async ({ request }) => {
+      const r = await request.post(`${BASE_URL}/api/free/wcag-scan`, {
+        data: { url },
+        headers: { "content-type": "application/json" },
+      });
+      expect(r.status()).toBe(400);
     });
-    expect(res.status).toBe(400);
-  });
+  }
 
   test("rejects URL pointing to private IP (10.x literal)", async () => {
     const res = await fetch(`${BASE_URL}/api/free/wcag-scan`, {
