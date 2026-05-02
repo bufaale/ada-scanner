@@ -52,22 +52,31 @@ test.describe("Tier gating — new scan page", () => {
 });
 
 test.describe("Tier gating — monitored sites (Business-only)", () => {
-  // Non-business tiers trigger the 402 banner when they try to add a site.
+  // The /dashboard/monitored UI gates the "Add site" button at the
+  // disabled-button level for non-business tiers (button is disabled +
+  // opacity 0.6). The backend also returns 402 if a non-business user
+  // tries to POST directly. We assert both: the upsell banner is on
+  // the page, and a direct POST to /api/monitored returns 402.
   for (const tier of ["free", "pro", "agency"] as const) {
     test(`${tier} user is gated when trying to add a monitored site`, async ({ page }) => {
       await loginViaUI(page, users[tier].email);
       await page.goto("/dashboard/monitored");
 
-      // The add-site form is rendered for all tiers; gated banner only appears
-      // after a failed POST (the backend returns 402 for non-business).
-      await page.getByLabel(/^URL$/i).fill("https://example.com");
-      await page.getByLabel(/label/i).first().fill("Test site");
-      await page.getByLabel(/alert email/i).fill(users[tier].email);
-      await page.getByRole("button", { name: /Add to monitoring/i }).click();
+      // The BusinessUpsellBanner has data-testid="monitored-upsell" and
+      // renders only for non-business tiers.
+      await expect(page.getByTestId("monitored-upsell")).toBeVisible({ timeout: 10_000 });
 
-      await expect(page.getByRole("link", { name: /See Business plan/i })).toBeVisible({
-        timeout: 10_000,
+      // Direct POST returns 402 (server-side enforcement, not just UI).
+      const resp = await page.request.post("/api/monitored", {
+        data: {
+          url: "https://example.com",
+          label: "Test site",
+          cadence: "weekly",
+          alert_email: users[tier].email,
+          regression_threshold: 5,
+        },
       });
+      expect(resp.status()).toBe(402);
     });
   }
 

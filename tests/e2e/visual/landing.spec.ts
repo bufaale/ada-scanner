@@ -9,10 +9,17 @@
  *   npx playwright test tests/e2e/visual/landing.spec.ts --update-snapshots
  *
  * Then commit the new baseline PNGs alongside the design change.
+ *
+ * SKIPPED in CI as of 2026-05-02: the committed baselines are
+ * chromium-win32.png (generated on the dev's Windows machine) but CI runs
+ * on Linux and looks for chromium-linux.png, which doesn't exist. Same
+ * story as tests/e2e/visual/auth-pages.spec.ts. Reactivate by regenerating
+ * baselines on Linux (Docker or GH Actions worker) with --update-snapshots
+ * and committing the chromium-linux.png files.
  */
 import { test, expect } from "@playwright/test";
 
-test.describe("Landing — visual regression", () => {
+test.describe.skip("Landing — visual regression", () => {
   test.use({ viewport: { width: 1280, height: 720 } });
 
   test("full landing page", async ({ page }) => {
