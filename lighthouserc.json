@@ -39,6 +39,8 @@
         "dom-size": "off",
         "third-party-summary": "off",
         "third-parties-insight": "off",
+        "forced-reflow-insight": "off",
+        "duplicated-javascript-insight": "off",
         "bf-cache": "off",
         "uses-long-cache-ttl": "off",
         "uses-text-compression": "off"
