@@ -19,7 +19,7 @@ test("generate a VPAT PDF and save to disk for visual inspection", async ({ page
 
   // Run a quick scan
   await page.goto("/dashboard/scans/new");
-  await page.getByRole("textbox", { name: /example\.com/i }).fill("https://example.com");
+  await page.locator("#scan-url").fill("https://example.com");
   await page.getByRole("button", { name: "Run Scan" }).click();
   await page.waitForURL(/\/dashboard\/scans\/[0-9a-f-]+/, { timeout: 120_000 });
   await expect(page.getByText(/Completed|completed/).first()).toBeVisible({ timeout: 60_000 });

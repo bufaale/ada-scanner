@@ -26,7 +26,7 @@ test.afterAll(async () => {
 
 async function runQuickScanAndGetId(page: import("@playwright/test").Page) {
   await page.getByRole("link", { name: "New Scan" }).click();
-  await page.getByRole("textbox", { name: /example\.com/i }).fill("https://example.com");
+  await page.locator("#scan-url").fill("https://example.com");
   await page.getByRole("button", { name: "Run Scan" }).click();
   await page.waitForURL(/\/dashboard\/scans\/[0-9a-f-]+/, { timeout: 90_000 });
   await expect(page.getByText("Completed")).toBeVisible({ timeout: 30_000 });

@@ -283,12 +283,13 @@ function NewScanContent() {
         </label>
         <input
           id="scan-url"
-          type="text"
+          type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !loading && handleSubmit()}
           disabled={loading}
           placeholder="https://example.com"
+          aria-label="Website URL to scan"
           style={{ width: "100%", height: 44, padding: "0 14px", border: `1px solid ${SLATE_200}`, borderRadius: 6, fontSize: 14, fontFamily: FONT_INTER, color: NAVY, background: loading ? SLATE_50 : "#fff", outline: "none" }}
         />
 

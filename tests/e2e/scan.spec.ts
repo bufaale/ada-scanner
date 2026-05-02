@@ -36,7 +36,7 @@ test.describe.serial("Scanning - Free user", () => {
     await page.getByRole("link", { name: "New Scan" }).click();
 
     // Enter URL and run scan
-    await page.getByRole("textbox", { name: /example\.com/i }).fill("https://example.com");
+    await page.locator("#scan-url").fill("https://example.com");
     await page.getByRole("button", { name: "Run Scan" }).click();
 
     // Either the button is still "Scanning..." or we've already redirected —
@@ -86,7 +86,7 @@ test.describe("Scanning - Pro user", () => {
     await loginViaUI(page, proUser.email);
     await page.getByRole("link", { name: "New Scan" }).click();
 
-    await page.getByRole("textbox", { name: /example\.com/i }).fill("https://example.com");
+    await page.locator("#scan-url").fill("https://example.com");
     await page.getByRole("button", { name: "Run Scan" }).click();
 
     // Wait for completion

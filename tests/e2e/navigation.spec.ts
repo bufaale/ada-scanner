@@ -52,7 +52,7 @@ test.describe("Navigation - Authenticated pages", () => {
   test("new scan page loads", async ({ page }) => {
     await page.getByRole("link", { name: "New Scan" }).click();
     await expect(page.getByRole("heading", { name: "New Accessibility Scan" })).toBeVisible();
-    await expect(page.getByRole("textbox", { name: /example\.com/i })).toBeVisible();
+    await expect(page.locator("#scan-url")).toBeVisible();
   });
 
   test("scan history page loads", async ({ page }) => {
