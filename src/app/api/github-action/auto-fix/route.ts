@@ -21,7 +21,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { openAutoFixPR } from "@/lib/github/app-client";
+import { openAutoFixPR, listInstallationRepoNames } from "@/lib/github/app-client";
 import { generatePatch, isSafeRule, type PatchInput } from "@/lib/github/generate-patch";
 import { logAuditEvent, extractAuditContext } from "@/lib/audit/log";
 
@@ -87,6 +87,36 @@ export async function POST(req: NextRequest) {
         install_url: `https://github.com/apps/${process.env.GITHUB_APP_NAME?.trim() || "accessiscan-auto-fix"}/installations/new?state=${user.id}`,
       },
       { status: 412 },
+    );
+  }
+
+  // Authorization gate: the client-supplied repo_full_name must be one of the
+  // repositories the user's GitHub App installation can access. Without this
+  // an attacker can:
+  //   - waste Anthropic quota by triggering patch generation against an
+  //     arbitrary `owner/repo` they don't own (the GitHub call later fails
+  //     with 404, but the cost has already been paid).
+  //   - enumerate private repos by comparing 404 vs success responses to
+  //     map which orgs/repos a given installation covers.
+  // Validate BEFORE any AI work. Cached for 5 minutes per installation so
+  // bursty UI usage doesn't paginate the GitHub API on every request.
+  let accessibleRepos: Set<string>;
+  try {
+    accessibleRepos = await listInstallationRepoNames(Number(install.github_installation_id));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "repo_list_failed";
+    return NextResponse.json(
+      { error: `Could not list installation repositories: ${message}` },
+      { status: 502 },
+    );
+  }
+  if (!accessibleRepos.has(repo_full_name)) {
+    return NextResponse.json(
+      {
+        error: "Repository not in your GitHub App installation. Re-install or grant access.",
+        install_url: `https://github.com/apps/${process.env.GITHUB_APP_NAME?.trim() || "accessiscan-auto-fix"}/installations/new`,
+      },
+      { status: 403 },
     );
   }
 

@@ -176,6 +176,58 @@ export async function openAutoFixPR(opts: {
 }
 
 /**
+ * Return the set of `owner/repo` strings reachable via the given installation.
+ *
+ * Why: the auto-fix endpoint receives a `repo_full_name` from the client and
+ * MUST verify it actually belongs to the user's installation before doing any
+ * paid work (Anthropic patch generation). Without this check an attacker who
+ * only has the repo's public name can cause us to:
+ *   1. burn Anthropic quota generating patches against an unrelated repo,
+ *   2. enumerate private repos via the difference between 403 and "patch ok",
+ *   3. probe which orgs the installation has access to.
+ *
+ * Pagination: GitHub returns up to 100 per page. We loop until we've seen all
+ * pages or hit a hard cap (5 pages = 500 repos) — pathological installations
+ * with thousands of repos still work for the lookup but stop scanning to keep
+ * latency bounded.
+ *
+ * Cache: 5-minute in-memory cache keyed by installationId. Stale data is
+ * acceptable here because the worst-case from a recently-removed repo is a
+ * harmless 404 from openAutoFixPR; the security guarantee comes from the
+ * fresh path being authoritative, not the cache.
+ */
+const REPO_LIST_CACHE_MS = 5 * 60 * 1000;
+const repoListCache = new Map<number, { repos: Set<string>; expiresAt: number }>();
+
+export async function listInstallationRepoNames(installationId: number): Promise<Set<string>> {
+  const cached = repoListCache.get(installationId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.repos;
+  }
+
+  const octokit = installationOctokit(installationId);
+  const repos = new Set<string>();
+  const perPage = 100;
+  const maxPages = 5;
+  for (let page = 1; page <= maxPages; page++) {
+    const { data } = await octokit.apps.listReposAccessibleToInstallation({
+      per_page: perPage,
+      page,
+    });
+    for (const r of data.repositories) {
+      repos.add(r.full_name);
+    }
+    if (data.repositories.length < perPage) break;
+  }
+
+  repoListCache.set(installationId, {
+    repos,
+    expiresAt: Date.now() + REPO_LIST_CACHE_MS,
+  });
+  return repos;
+}
+
+/**
  * Fetch a file's current content from the repo at a specific ref. Returns
  * decoded UTF-8 text. Used by the patch generator to read the original code
  * before sending it to Claude.
