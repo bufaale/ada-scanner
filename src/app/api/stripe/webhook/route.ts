@@ -96,9 +96,16 @@ export async function POST(req: Request) {
           current_period_end: new Date(firstItem.current_period_end * 1000).toISOString(),
         }).eq("stripe_subscription_id", subscription.id);
 
+        // Plan stays at the paid tier until customer.subscription.deleted fires;
+        // subscription_status carries the past_due/unpaid/incomplete signal so the
+        // frontend can render a "fix your card" banner without revoking access during
+        // Stripe's dunning retry window. Previously this branch reset plan to "free"
+        // on any non-active status, which incorrectly punished users for transient
+        // billing failures (expired card, temporary decline) that Stripe was still
+        // retrying.
         await supabase.from("profiles").update({
           subscription_status: subscription.status,
-          subscription_plan: subscription.status === "active" ? planId : "free",
+          subscription_plan: planId,
         }).eq("id", userId);
       }
       break;
