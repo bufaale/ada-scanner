@@ -32,7 +32,6 @@ export const metadata: Metadata = {
     title: "AccessiScan — WCAG 2.1 AA + VPAT 2.5",
     description:
       "Real WCAG 2.1 AA scanning with AI-generated fix code, VPAT 2.5 export, and a GitHub Action for CI/CD.",
-    images: ["/og.png"],
     type: "website",
   },
   twitter: {
@@ -40,7 +39,6 @@ export const metadata: Metadata = {
     title: "AccessiScan — WCAG 2.1 AA + VPAT 2.5",
     description:
       "Real WCAG 2.1 AA scanning with AI-generated fix code, VPAT 2.5 export, and a GitHub Action for CI/CD.",
-    images: ["/og.png"],
   },
 };
 

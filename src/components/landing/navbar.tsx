@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, Shield } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -34,9 +35,14 @@ export function Navbar() {
           href="/"
           className="flex items-center gap-2 font-display text-[17px] font-bold text-[#0b1f3a]"
         >
-          <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-[#06b6d4]">
-            <Shield className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
-          </span>
+          <Image
+            src="/logo-mark.png"
+            alt=""
+            width={28}
+            height={28}
+            priority
+            className="h-7 w-7"
+          />
           AccessiScan
         </Link>
 
