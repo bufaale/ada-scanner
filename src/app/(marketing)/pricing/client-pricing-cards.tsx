@@ -185,7 +185,7 @@ function priceSuffix(plan: PricingPlan, billing: Billing): string {
 function ctaLabel(plan: PricingPlan): string {
   if (plan.id === "free") return "Start free scan";
   if (plan.contactSales) return plan.ctaLabel || "Contact sales";
-  return "Start 14-day trial";
+  return "Start free — upgrade anytime";
 }
 
 function ctaVariant(plan: PricingPlan): CtaVariant {
@@ -447,7 +447,7 @@ export function PricingCards() {
                 {/* CTA — aria-label MUST contain the visible text (axe
                     label-content-name-mismatch rule). We append the plan
                     name for screen-reader context, e.g. "Start free scan
-                    — Free", "Start 14-day trial — Pro". */}
+                    — Free", "Start free — upgrade anytime — Pro". */}
                 <div style={{ marginTop: 22 }}>
                   {plan.id === "free" ? (
                     <Btn

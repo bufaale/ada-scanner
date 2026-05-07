@@ -41,9 +41,9 @@ export async function POST(req: Request) {
     .eq("id", user.id)
     .single();
   const plan = (profile?.subscription_plan ?? "free").toLowerCase();
-  if (plan !== "business") {
+  if (plan !== "agency" && plan !== "business" && plan !== "team") {
     return NextResponse.json(
-      { error: "API keys require the Business plan." },
+      { error: "API keys require the Agency, Business, or Team plan." },
       { status: 402 },
     );
   }

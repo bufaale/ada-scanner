@@ -6,7 +6,7 @@ import { PricingFaq } from "./client-pricing-faq";
 export const metadata: Metadata = {
   title: "AccessiScan Pricing — Start free, scale to government",
   description:
-    "Transparent pricing for the AccessiScan WCAG 2.1 AA scanner. Free forever tier, Pro from $19/mo, Agency from $49/mo, Business from $299/mo. VPAT 2.5 exports, Auto-Fix PRs, and CI/CD on every paid plan.",
+    "Transparent pricing for the AccessiScan WCAG 2.1 AA scanner. Free forever tier, Pro from $19/mo, Agency from $49/mo, Business from $299/mo, Team from $599/mo. VPAT 2.5 exports + GitHub Action CI/CD on every paid plan; Auto-Fix PRs against your repo on Business and Team.",
 };
 
 const FONT_DISPLAY = "var(--font-display), sans-serif";
@@ -101,7 +101,7 @@ function Eyebrow({ children, color = "slate" }: { children: ReactNode; color?: "
 
 function PricingHeader() {
   const trustSignals = [
-    "14-day Pro trial",
+    "Free tier — no card required",
     "30-day money-back guarantee",
     "Cancel anytime",
     "Pay by card, ACH, or PO",

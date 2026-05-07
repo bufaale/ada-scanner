@@ -31,8 +31,8 @@ const ITEMS: Array<{ q: string; a: string }> = [
     a: "No. Every plan — including Free — includes unlimited team members. Invite your entire engineering, design, legal, and procurement orgs at no extra cost. Seat-based pricing only kicks in on the Team tier for SSO governance and audit log access.",
   },
   {
-    q: "How does the 14-day Pro trial work?",
-    a: "Start the trial without a credit card. You get the full Pro feature set — VPAT 2.5 export, Auto-Fix PRs, CI/CD action, multi-site tracking — for 14 days. We email a reminder 3 days before it ends. If you don't upgrade, your account drops back to Free; nothing is auto-charged.",
+    q: "Can I try Pro before I pay?",
+    a: "Yes — sign up free, run a real scan, then upgrade when you're ready. The Free tier (2 scans/month, no card required) lets you confirm AccessiScan finds real violations on your site before any payment. Upgrade to Pro from Settings → Billing whenever you want; cancel any time, refund within 30 days, no questions asked.",
   },
   {
     q: "Will my price increase at renewal?",
