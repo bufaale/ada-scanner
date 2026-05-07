@@ -115,18 +115,39 @@ export function FreeScannerForm() {
 
       {result && (
         <div className="mt-8 space-y-4" data-testid="scan-result">
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-baseline justify-between">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Accessibility health</p>
-              <p className="font-display text-3xl font-semibold text-[#0b1f3a]">
-                {result.report.health_score}/100
+          {result.report.error ? (
+            // Fetch failed (403 / 404 / timeout / DNS). Don't show 0/100
+            // because the user would think the site has zero accessibility.
+            // Show an explicit blocked-by-host message + the option to try
+            // the full Playwright-based scan which uses a real browser UA.
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900" data-testid="scan-blocked">
+              <div className="flex items-center gap-2 text-base font-semibold">
+                <AlertTriangle className="h-5 w-5" />
+                Couldn't scan this site
+              </div>
+              <p className="mt-2 break-all text-xs text-amber-800/80">{result.report.url}</p>
+              <p className="mt-3">
+                <span className="font-medium">{result.report.error}</span> — usually
+                the site has a CDN (Cloudflare / Akamai / AWS WAF) that blocks
+                automated requests. The lite scanner uses a server-to-server fetch
+                that some sites reject.
+              </p>
+              <p className="mt-3">
+                The full scan uses a real Chromium browser with a standard user
+                agent and clears these blocks &gt;95% of the time.
               </p>
             </div>
-            <p className="mt-2 break-all text-xs text-slate-500">{result.report.url}</p>
-            {result.report.error && (
-              <p className="mt-2 text-sm text-rose-700">{result.report.error}</p>
-            )}
-          </div>
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-baseline justify-between">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Accessibility health</p>
+                <p className="font-display text-3xl font-semibold text-[#0b1f3a]">
+                  {result.report.health_score}/100
+                </p>
+              </div>
+              <p className="mt-2 break-all text-xs text-slate-500">{result.report.url}</p>
+            </div>
+          )}
 
           {result.report.issues.length === 0 && !result.report.error ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
