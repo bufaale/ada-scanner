@@ -94,21 +94,22 @@ test.describe("Settings — Profile (rich, A7)", () => {
     try {
       await loginViaUI(page, u.email);
       await page.goto("/settings/profile");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const nameInput = page.locator("#fullName");
-      await expect(nameInput).toBeVisible();
+      await expect(nameInput).toBeVisible({ timeout: 10_000 });
       await nameInput.fill(newName);
 
       await page.getByTestId("save-details").click();
 
       // Toast OR DB persistence — wait for either signal.
-      await expect(page.getByText(/saved|updated/i).first()).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByText(/saved|updated/i).first()).toBeVisible({ timeout: 10_000 });
 
-      // Reload to confirm round-trip
+      // Reload to confirm round-trip — domcontentloaded is more reliable than
+      // networkidle on the dashboard which has live polling.
       await page.reload();
-      await page.waitForLoadState("networkidle");
-      await expect(page.locator("#fullName")).toHaveValue(newName);
+      await page.waitForLoadState("domcontentloaded");
+      await expect(page.locator("#fullName")).toHaveValue(newName, { timeout: 10_000 });
 
       // Verify DB
       const profile = await fetchProfile(u.id);
