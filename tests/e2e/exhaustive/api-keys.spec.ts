@@ -1,9 +1,14 @@
 /**
  * api-keys.spec.ts — verify the /settings/api-keys page (B7f consumer of B7).
  *
- *  - Free/Pro/Agency users see the upsell card pointing at /settings/billing
- *  - Business users can create + revoke keys via the form
+ *  - Free/Pro users see the upsell card pointing at /settings/billing
+ *  - Agency/Business/Team users can create + revoke keys via the form
  *  - The plaintext key is shown ONCE in a banner after creation
+ *
+ * Updated 2026-05-07: API access is included on Agency $49/mo (per plans.ts),
+ * not Business-only. The route gate at /api/account/keys was widened to
+ * accept Agency, Business, and Team. The UI upsell now reads
+ * "API access starts on the Agency plan".
  */
 import { test, expect } from "@playwright/test";
 import { createTestUser, deleteTestUser, loginViaUI } from "../../helpers/test-utils";
@@ -11,15 +16,39 @@ import { createTestUser, deleteTestUser, loginViaUI } from "../../helpers/test-u
 test.describe("Settings — API Keys", () => {
   test.setTimeout(90_000);
 
-  test("free user sees upsell, not the create form", async ({ page }) => {
-    const u = await createTestUser("apikeys-free", "free");
+  for (const tier of ["free", "pro"] as const) {
+    test(`${tier} user sees upsell, not the create form`, async ({ page }) => {
+      const u = await createTestUser(`apikeys-${tier}`, tier);
+      try {
+        await loginViaUI(page, u.email);
+        await page.goto("/settings/api-keys");
+        await page.waitForLoadState("networkidle");
+
+        await expect(page.locator("[data-testid='api-keys-upsell']")).toBeVisible({ timeout: 10_000 });
+        await expect(page.locator("[data-testid='api-keys-create-form']")).toHaveCount(0);
+      } finally {
+        await deleteTestUser(u.id);
+      }
+    });
+  }
+
+  test("agency user CAN create a key (API access included on Agency)", async ({ page }) => {
+    const u = await createTestUser("apikeys-agency", "agency");
     try {
       await loginViaUI(page, u.email);
       await page.goto("/settings/api-keys");
       await page.waitForLoadState("networkidle");
 
-      await expect(page.locator("[data-testid='api-keys-upsell']")).toBeVisible({ timeout: 10_000 });
-      await expect(page.locator("[data-testid='api-keys-create-form']")).toHaveCount(0);
+      // Agency should see the create form, NOT the upsell
+      await expect(page.locator("[data-testid='api-keys-create-form']")).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator("[data-testid='api-keys-upsell']")).toHaveCount(0);
+
+      // Create a key
+      await page.locator("#api-key-label").fill("Agency · CI key");
+      await page.getByRole("button", { name: /generate\s*key/i }).click();
+      await expect(page.locator("[data-testid='api-keys-plaintext']")).toBeVisible({ timeout: 10_000 });
+      const plaintext = await page.locator("[data-testid='api-keys-plaintext']").innerText();
+      expect(plaintext).toMatch(/^as_/);
     } finally {
       await deleteTestUser(u.id);
     }
