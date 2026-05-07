@@ -305,13 +305,20 @@ try {
   await mobilePage.waitForLoadState("networkidle");
   await mobilePage.screenshot({ path: `${OUT}/17-mobile-landing.png`, fullPage: true });
 
-  // Check no horizontal scroll on body
-  const bodyScrollWidth = await mobilePage.evaluate(() => document.body.scrollWidth);
-  const bodyClientWidth = await mobilePage.evaluate(() => document.body.clientWidth);
-  if (bodyScrollWidth <= bodyClientWidth + 5) {
-    log("17. Mobile landing: no horizontal scroll", "ok");
+  // Check no horizontal scroll — the accurate test is "can the user actually
+  // scroll horizontally?" not body.scrollWidth. With overflow-x: clip on
+  // html, body can have internal width > viewport but the user can't scroll.
+  const canScrollHorizontally = await mobilePage.evaluate(() => {
+    const before = window.scrollX;
+    window.scrollTo(500, 0);
+    const after = window.scrollX;
+    window.scrollTo(0, 0);
+    return after > before;
+  });
+  if (!canScrollHorizontally) {
+    log("17. Mobile landing: no horizontal scroll (clipped)", "ok");
   } else {
-    flag(`Mobile landing has horizontal overflow: scroll=${bodyScrollWidth} client=${bodyClientWidth}`, "warning");
+    flag(`Mobile landing CAN scroll horizontally — overflow not clipped`, "error");
   }
 
   await mobilePage.goto(`${BASE}/pricing`);
