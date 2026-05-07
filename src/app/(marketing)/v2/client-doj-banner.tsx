@@ -52,16 +52,25 @@ function ArrowRightIcon({ size = 12, sw = 2.5 }: { size?: number; sw?: number })
 }
 
 export function DojBannerLive() {
-  const [t, setT] = useState(() => calc());
+  // Initialize with zeros so SSR + first client render match. Then hydrate
+  // real values on mount via useEffect. Without this, useState(() => calc())
+  // runs Date.now() once on the server (SSR snapshot) and once on client
+  // (hydration), producing different countdowns and triggering React error
+  // #418 hydration mismatch in production.
+  const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 });
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
+    setT(calc());
     const id = setInterval(() => setT(calc()), 1000);
     return () => clearInterval(id);
   }, []);
+  const display = mounted ? t : { d: 0, h: 0, m: 0, s: 0 };
   const cells: [string, string][] = [
-    [String(t.d), "Days"],
-    [String(t.h).padStart(2, "0"), "Hrs"],
-    [String(t.m).padStart(2, "0"), "Min"],
-    [String(t.s).padStart(2, "0"), "Sec"],
+    [String(display.d), "Days"],
+    [String(display.h).padStart(2, "0"), "Hrs"],
+    [String(display.m).padStart(2, "0"), "Min"],
+    [String(display.s).padStart(2, "0"), "Sec"],
   ];
   return (
     <div
