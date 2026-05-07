@@ -26,8 +26,8 @@ export async function GET(
 
   if (!profile || profile.subscription_plan === "free") {
     return NextResponse.json(
-      { error: "VPAT generation requires a Pro or Agency subscription." },
-      { status: 403 },
+      { error: "VPAT generation requires the Pro plan or higher." },
+      { status: 402 },
     );
   }
 
