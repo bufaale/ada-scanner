@@ -23,7 +23,9 @@ export default async function ApiKeysPage() {
     .eq("id", user.id)
     .single();
 
-  const isBusinessTier = (profile?.subscription_plan ?? "free").toLowerCase() === "business";
+  const plan = (profile?.subscription_plan ?? "free").toLowerCase();
+  // API access is included on Agency, Business, and Team per plans.ts.
+  const canUseApiKeys = plan === "agency" || plan === "business" || plan === "team";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "32px 0", fontFamily: FONT_INTER }}>
@@ -36,7 +38,7 @@ export default async function ApiKeysPage() {
         </p>
       </div>
 
-      <ApiKeysClient isBusinessTier={isBusinessTier} />
+      <ApiKeysClient canUseApiKeys={canUseApiKeys} />
     </div>
   );
 }

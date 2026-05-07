@@ -31,7 +31,7 @@ interface CreatedKey {
   plaintext: string;
 }
 
-export function ApiKeysClient({ isBusinessTier }: { isBusinessTier: boolean }) {
+export function ApiKeysClient({ canUseApiKeys }: { canUseApiKeys: boolean }) {
   const [keys, setKeys] = useState<ApiKey[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [label, setLabel] = useState("");
@@ -94,7 +94,7 @@ export function ApiKeysClient({ isBusinessTier }: { isBusinessTier: boolean }) {
     }
   }
 
-  if (!isBusinessTier) {
+  if (!canUseApiKeys) {
     return (
       <div
         data-testid="api-keys-upsell"
@@ -108,10 +108,10 @@ export function ApiKeysClient({ isBusinessTier }: { isBusinessTier: boolean }) {
         }}
       >
         <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 18, color: NAVY, marginBottom: 8 }}>
-          API Keys are a Business tier feature
+          API access starts on the Agency plan
         </div>
         <p style={{ fontSize: 13.5, color: SLATE_500, margin: 0, lineHeight: 1.55, maxWidth: 540 }}>
-          Programmatic access requires the Business plan ($299/mo). It comes with Auto-Fix PRs, continuous monitoring, GitHub App, and SLA-backed support.
+          Programmatic access is included on Agency ($49/mo), Business ($299/mo), and Team ($599/mo). Keys work for CI pipelines, GitHub Actions, or your own tools.
         </p>
         <Link
           href="/settings/billing"
@@ -126,7 +126,7 @@ export function ApiKeysClient({ isBusinessTier }: { isBusinessTier: boolean }) {
             fontSize: 13,
           }}
         >
-          Upgrade to Business →
+          Upgrade to Agency →
         </Link>
       </div>
     );
