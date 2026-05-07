@@ -251,10 +251,10 @@ function VendorComparison() {
             marginTop: 40,
             borderRadius: 8,
             border: "1px solid #e2e8f0",
-            overflow: "hidden",
+            overflow: "auto" /* Was hidden — caused the 749px-wide comparison table to push horizontal-scroll on mobile. Auto lets the table scroll inside its container without dragging the body width. */,
           }}
         >
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 720 }}>
             <thead>
               <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                 <th

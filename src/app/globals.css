@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 
+/* Prevent horizontal scroll on mobile from absolutely-positioned hero chips
+   on the v2 landing diagram (left:-8% / right:-6% offsets) and from any
+   wide table on /pricing comparison. `overflow-x: clip` preserves
+   position:sticky / scroll-snap behavior unlike `hidden`. */
+html, body { overflow-x: clip; }
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
