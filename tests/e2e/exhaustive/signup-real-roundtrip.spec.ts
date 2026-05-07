@@ -80,15 +80,22 @@ test.describe("Signup form — real Supabase roundtrip", () => {
       await page.locator("#signup-password, input[type='password']").first().fill(TEST_PASSWORD);
 
       // The ToS checkbox is required — submit button stays disabled until
-      // it's checked. Without this the click below is a no-op and the test
-      // silently times out at the findUserByEmail check.
-      const tos = page.getByRole("checkbox").first();
-      if (await tos.count()) await tos.check();
+      // it's checked. Custom-styled checkbox: input is a 0x0 hidden dot
+      // and the user actually clicks <label for="agree">. Click the label.
+      const tosLabel = page.locator("label[for='agree']").first();
+      if (await tosLabel.count()) {
+        await tosLabel.click();
+      } else {
+        const tos = page.locator("#agree, input[type='checkbox']").first();
+        if (await tos.count()) await tos.check({ force: true });
+      }
 
-      // Submit — match the submit button by text (Sign up / Create account).
+      // Submit — match the submit button by text. The signup CTA reads
+      // "Start free WCAG scan" on AccessiScan (consistent with the
+      // marketing CTA), not "Sign up".
       const submit = page
         .locator("button[type='submit']")
-        .filter({ hasText: /sign\s*up|create\s*account|get\s*started/i })
+        .filter({ hasText: /sign\s*up|create\s*account|get\s*started|start\s*free/i })
         .first();
       await submit.click();
 
@@ -130,11 +137,20 @@ test.describe("Signup form — real Supabase roundtrip", () => {
     await page.locator("#signup-password, input[type='password']").first().fill(TEST_PASSWORD);
     // Same ToS gate — without it the submit is a no-op and the URL stays
     // on /signup whether or not the email is malformed, defeating the test.
-    const tos = page.getByRole("checkbox").first();
-    if (await tos.count()) await tos.check();
+    // Custom-styled checkbox needs force:true (see the happy-path test).
+    // Custom-styled checkbox: input is a 0x0 hidden dot, the visible
+    // affordance is the <label for="agree"> wrapper containing "I agree
+    // to the Terms of Service...". Clicking the label toggles the input.
+    const tosLabel = page.locator("label[for='agree']").first();
+    if (await tosLabel.count()) {
+      await tosLabel.click();
+    } else {
+      const tos = page.locator("#agree, input[type='checkbox']").first();
+      if (await tos.count()) await tos.check({ force: true });
+    }
     const submit = page
       .locator("button[type='submit']")
-      .filter({ hasText: /sign\s*up|create\s*account|get\s*started/i })
+      .filter({ hasText: /sign\s*up|create\s*account|get\s*started|start\s*free/i })
       .first();
     await submit.click();
     // Either browser-native :invalid pseudo blocks submission, or server returns
