@@ -1,0 +1,31 @@
+# AccessiScan robots.txt
+# Disallow protected/auth routes from being indexed by search engines.
+# Allow the rest (landing, pricing, free scanner, blog, etc.).
+
+User-agent: *
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /admin
+Disallow: /api
+Disallow: /auth
+Disallow: /login-v2-preview
+Disallow: /forgot-password-v2-preview
+Disallow: /scan-result-v2-preview
+Disallow: /signup-v2-preview
+Allow: /
+
+# AI scrapers — opt out of training, opt in to indexing
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
