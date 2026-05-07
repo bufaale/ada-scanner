@@ -558,6 +558,9 @@ function AutoFixPr() {
             <Btn variant="white" href="/dashboard/github" leadIcon={<IconGithub />}>Install GitHub App</Btn>
             <Btn variant="outline-dark" href="#features">View example PR</Btn>
           </div>
+          <div style={{ marginTop: 16, fontSize: 13, color: "rgba(255,255,255,0.55)" }}>
+            Included on the <a href="/pricing" style={{ color: "#0e7490", textDecoration: "underline", fontWeight: 600 }}>Business plan ($299/mo)</a>. Pro and Agency plans get AI-powered fix suggestions; Auto-Fix PRs against your repo are Business and Team only.
+          </div>
         </div>
         <PrMockup />
       </div>
@@ -568,13 +571,17 @@ function AutoFixPr() {
 // ---------- Pricing ----------
 
 function Pricing() {
+  // Honest tier copy, aligned with src/lib/stripe/plans.ts (single source of truth).
+  // Auto-Fix PR + Continuous monitoring + Regression alerts are Business-tier features
+  // and live on /pricing; SSO is Team-tier. This homepage shows the consumer ladder
+  // and links to /pricing for the full procurement-grade comparison.
   const tiers = [
     {
       name: "Free",
       price: "$0",
       per: "/mo",
       desc: "Try AccessiScan on a single domain.",
-      features: ["1 site · 2 scans/mo", "WCAG 2.1 AA scan", "PDF report export", "No credit card required"],
+      features: ["2 scans/month", "WCAG 2.1 A/AA quick scan", "PDF report export", "No credit card required"],
       cta: "Start free scan",
       popular: false,
     },
@@ -583,7 +590,7 @@ function Pricing() {
       price: "$19",
       per: "/mo",
       desc: "For developers and contractors filing VPATs.",
-      features: ["3 sites · unlimited pages", "VPAT 2.5 export", "Auto-Fix PR (GitHub)", "CI/CD action", "Continuous monitoring"],
+      features: ["30 scans/month · multi-site", "WCAG 2.1 + 2.2 A/AA + deep scan", "VPAT 2.5 + EN 301 549 export", "AI-powered fix suggestions", "GitHub Action for CI/CD"],
       cta: "Start free — upgrade anytime",
       popular: true,
     },
@@ -592,7 +599,7 @@ function Pricing() {
       price: "$49",
       per: "/mo",
       desc: "For agencies and multi-site operators.",
-      features: ["25 sites · multi-tenant", "Client-branded VPAT exports", "Section 508 + EN 301 549 reports", "Priority support · SSO", "Volume discounts on overage"],
+      features: ["Unlimited scans across clients", "White-label PDF + VPAT reports", "API access + team collaboration", "Custom branding", "SLA guarantee"],
       cta: "Start free — upgrade anytime",
       popular: false,
     },
@@ -627,6 +634,9 @@ function Pricing() {
               <Btn variant={t.popular ? "primary" : "outline"} size="md" href="/signup" style={{ marginTop: 24, justifyContent: "center" }}>{t.cta}</Btn>
             </div>
           ))}
+        </div>
+        <div style={{ marginTop: 28, textAlign: "center", fontSize: 14, color: "#64748b" }}>
+          Need <strong style={{ color: "#0b1f3a" }}>Auto-Fix PRs</strong> against your repo, continuous monitoring, or SSO? See the <a href="/pricing" style={{ color: "#0e7490", textDecoration: "underline", fontWeight: 600 }}>Business and Team plans on the full pricing page →</a>
         </div>
       </div>
     </section>
