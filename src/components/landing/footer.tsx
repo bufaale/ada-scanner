@@ -117,7 +117,7 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-8 md:flex-row md:items-center">
           <p className="text-xs text-white/60">
-            &copy; {new Date().getFullYear()} AccessiScan, Inc. All rights reserved.
+            &copy; {new Date().getFullYear()} Pipo&apos;s Lab LLC &middot; AccessiScan&trade;. All rights reserved.
           </p>
           <p className="text-xs text-white/60">
             AccessiScan does not warrant legal compliance. Consult qualified counsel.

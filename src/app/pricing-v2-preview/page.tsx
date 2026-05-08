@@ -1621,7 +1621,7 @@ function Footer() {
           color: "rgba(255,255,255,0.45)",
         }}
       >
-        <span>© 2026 AccessiScan, Inc. · SOC 2 Type II in progress.</span>
+        <span>© 2026 Pipo&apos;s Lab LLC · AccessiScan&trade; · SOC 2 Type II in progress.</span>
         <span>Privacy · Terms · Accessibility statement (we eat our own cooking)</span>
       </div>
     </footer>
