@@ -105,12 +105,13 @@ try {
     log("4a. WRONG redirect_to in confirm URL", "fail", confirmUrl.slice(0, 200));
   }
 
-  // STEP 5: Click the confirm URL in a fresh browser context
-  const confirmCtx = await browser.newContext();
-  const confirmPage = await confirmCtx.newPage();
-  await confirmPage.goto(confirmUrl);
-  await confirmPage.waitForLoadState("networkidle", { timeout: 30_000 });
-  const finalUrl = confirmPage.url();
+  // STEP 5: Click the confirm URL in the SAME browser context (PKCE flow
+  // requires the code_verifier cookie set during signup). Real-world users
+  // who click the email link on the SAME device they signed up on hit this
+  // happy path.
+  await page.goto(confirmUrl);
+  await page.waitForLoadState("networkidle", { timeout: 30_000 });
+  const finalUrl = page.url();
   log("5. Confirm URL clicked, landed on", "ok", finalUrl.slice(0, 80));
 
   if (finalUrl.includes("accessiscan.piposlab.com")) {
@@ -124,16 +125,14 @@ try {
   }
 
   // STEP 6: Verify the user is logged in by hitting /dashboard
-  await confirmPage.goto(`${BASE}/dashboard`);
-  await confirmPage.waitForLoadState("networkidle");
-  const dashUrl = confirmPage.url();
+  await page.goto(`${BASE}/dashboard`);
+  await page.waitForLoadState("networkidle");
+  const dashUrl = page.url();
   if (dashUrl.includes("/dashboard") && !dashUrl.includes("/login")) {
     log("6. User is logged in after confirm — /dashboard accessible", "ok");
   } else {
     log("6. User NOT logged in after confirm", "fail", dashUrl);
   }
-
-  await confirmCtx.close();
   console.log(`\n✓ ${findings.filter(f => f.status === "ok").length} checks passed`);
   console.log(`✗ ${findings.filter(f => f.status === "fail").length} checks failed`);
 } catch (err) {
