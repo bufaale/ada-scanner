@@ -150,7 +150,7 @@ export default function DojTitleIiRunway() {
         scan. The Business tier adds continuous monitoring with regression
         alerts — when a content edit breaks a criterion that was previously
         passing, the ADA coordinator gets an email within 24 hours. Priced
-        at $199/month, that is 5-10% of what an enterprise platform charges
+        at $299/month, that is 5-10% of what an enterprise platform charges
         for the same coverage level. <a href="/signup">Start a free
         Title II scan</a> on any public URL.
       </p>

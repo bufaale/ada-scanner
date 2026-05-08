@@ -64,7 +64,7 @@ export function GenerateFixPRButton({
       <Button
         variant="outline"
         onClick={() => {
-          toast.info("Auto-Fix PRs are on the Business plan ($199/mo).");
+          toast.info("Auto-Fix PRs are on the Business plan ($299/mo).");
           window.location.href = "/settings/billing";
         }}
       >
