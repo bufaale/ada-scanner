@@ -35,7 +35,7 @@ export const CROSS_PROMO_OTHER_APPS: CrossPromoApp[] = [
   {
     name: "AIComply",
     tagline: "EU AI Act · Annex IV + FRIA generator",
-    price: "From $79/mo",
+    price: "From $49/mo",
     href: PIPO_LABS_URLS.aicomply,
   },
   {
