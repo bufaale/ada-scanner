@@ -699,7 +699,7 @@ function Footer() {
         ))}
       </div>
       <div style={{ maxWidth: 1320, margin: "48px auto 0", paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
-        <span>© 2026 AccessiScan, Inc. · SOC 2 Type II in progress.</span>
+        <span>© 2026 Pipo&apos;s Lab LLC · AccessiScan&trade; · SOC 2 Type II in progress.</span>
         <span>Privacy · Terms · Accessibility statement (we eat our own cooking)</span>
       </div>
     </footer>
