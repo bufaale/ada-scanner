@@ -1,24 +1,28 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, FileBarChart, ArrowUpRight } from "lucide-react";
+import { Phone, ShieldCheck, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
+import { PIPO_LABS_URLS } from "@/config/cross-promo";
 
+// Cross-promo cards on the dashboard for OTHER Pipo Labs products. Only
+// products that are LIVE on custom domains get listed here — apps still
+// behind vercel.app URLs leak the internal hostname and confuse customers.
 const promos = [
   {
-    icon: Search,
-    title: "Complete Your Web Audit",
-    description: "Checking accessibility? Run a full SEO audit too with SiteAuditPro.",
-    url: "https://app-01-seo-audit.vercel.app",
-    cta: "Try SiteAuditPro",
+    icon: Phone,
+    title: "Missed calls killing leads?",
+    description: "CallSpark — bilingual AI voice agent that answers, texts back, and books appointments.",
+    url: PIPO_LABS_URLS.callspark,
+    cta: "Try CallSpark",
   },
   {
-    icon: FileBarChart,
-    title: "Professional Client Reports",
-    description: "Turn your scan data into branded reports clients love with ReportFlow.",
-    url: "https://app-10-agency-reporting.vercel.app",
-    cta: "Try ReportFlow",
+    icon: ShieldCheck,
+    title: "Building with AI in the EU?",
+    description: "AIComply — auto-classify your AI systems against the EU AI Act. Free tier.",
+    url: PIPO_LABS_URLS.aicomply,
+    cta: "Try AIComply",
   },
 ];
 
