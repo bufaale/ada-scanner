@@ -42,6 +42,12 @@ export function SignupForm() {
       password,
       options: {
         data: { full_name: name },
+        // Without emailRedirectTo, Supabase redirects to site_url root
+        // after email confirmation, which adds ?code=xxx that our root
+        // page doesn't handle → user lands on /login?error=auth.
+        // Route them through /auth/confirm which exchanges the code
+        // properly and lands them on /dashboard.
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=/dashboard`,
       },
     });
 
