@@ -18,6 +18,7 @@ import AxeBuilder from "@axe-core/playwright";
 const PUBLIC_ROUTES = [
   "/",
   "/pricing",
+  "/enterprise",
   "/login",
   "/signup",
   "/forgot-password",

@@ -12,30 +12,15 @@
 
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
-import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEnterpriseLeadNotification } from "@/lib/email/enterprise-lead";
+import {
+  EnterpriseLeadSchema,
+  isDisposableEmail,
+} from "@/lib/enterprise-lead/validate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const Frameworks = z.enum([
-  "doj_title_ii",
-  "section_508",
-  "eaa",
-  "aoda",
-  "acaa",
-  "other",
-]);
-
-const Schema = z.object({
-  name: z.string().trim().min(1).max(120),
-  work_email: z.string().trim().toLowerCase().email().max(254),
-  company: z.string().trim().min(1).max(180),
-  role: z.string().trim().max(120).optional().or(z.literal("")),
-  frameworks: z.array(Frameworks).max(6).default([]),
-  scope: z.string().trim().max(2_000).optional().or(z.literal("")),
-});
 
 const RATE_WINDOW_HOURS = 24;
 const RATE_MAX = 3;
@@ -51,7 +36,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const parsed = Schema.safeParse(payload);
+  const parsed = EnterpriseLeadSchema.safeParse(payload);
   if (!parsed.success) {
     return NextResponse.json(
       {
@@ -160,22 +145,3 @@ function sha256(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
 
-const DISPOSABLE_DOMAINS = new Set([
-  "mailinator.com",
-  "guerrillamail.com",
-  "10minutemail.com",
-  "tempmail.com",
-  "throwaway.email",
-  "trashmail.com",
-  "yopmail.com",
-  "sharklasers.com",
-  "getnada.com",
-  "maildrop.cc",
-]);
-
-function isDisposableEmail(email: string): boolean {
-  const at = email.lastIndexOf("@");
-  if (at < 0) return false;
-  const domain = email.slice(at + 1);
-  return DISPOSABLE_DOMAINS.has(domain);
-}
