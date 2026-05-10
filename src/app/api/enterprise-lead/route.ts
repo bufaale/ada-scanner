@@ -18,6 +18,7 @@ import {
   EnterpriseLeadSchema,
   isDisposableEmail,
 } from "@/lib/enterprise-lead/validate";
+import { classifyBuyerLanguage } from "@/lib/buyer-language/classify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -130,7 +131,34 @@ export async function POST(req: Request) {
     console.error("[enterprise-lead] email failed", e);
   }
 
+  // Classify the buyer's scope text into scanner-vs-infrastructure
+  // language buckets for the IH-thread experiment (aryan_sinh follow-up,
+  // May 10 2026). Fire-and-forget — never blocks the response. Scope can
+  // be empty; classifier returns "unclear" gracefully.
+  if (data.scope && data.scope.trim()) {
+    classifyAndStore(supabase, row.id, data.scope).catch((e) => {
+      console.error("[enterprise-lead] classify failed", e);
+    });
+  }
+
   return NextResponse.json({ ok: true, id: row.id }, { status: 201 });
+}
+
+async function classifyAndStore(
+  supabase: ReturnType<typeof createAdminClient>,
+  leadId: string,
+  text: string,
+): Promise<void> {
+  const result = await classifyBuyerLanguage(text);
+  await supabase
+    .from("enterprise_leads")
+    .update({
+      language_bucket: result.bucket,
+      language_keywords: result.keywords,
+      language_evidence: result.evidence,
+      classified_at: new Date().toISOString(),
+    })
+    .eq("id", leadId);
 }
 
 function clientIp(req: Request): string | null {
