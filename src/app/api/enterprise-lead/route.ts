@@ -19,6 +19,14 @@ import {
   isDisposableEmail,
 } from "@/lib/enterprise-lead/validate";
 import { classifyBuyerLanguage } from "@/lib/buyer-language/classify";
+import {
+  sendBuyerLanguageThresholdAlert,
+  type BucketTallyRow,
+  type SampleQuote,
+} from "@/lib/email/buyer-language-threshold";
+
+const THRESHOLD_DISTINCT_PROSPECTS = 10;
+const THRESHOLD_ALERT_NAME = "buyer_language_threshold_10";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,6 +167,84 @@ async function classifyAndStore(
       classified_at: new Date().toISOString(),
     })
     .eq("id", leadId);
+
+  // Threshold check: when 10 distinct prospects have been classified,
+  // fire the buyer-language alert email exactly once. Race-safe via the
+  // alerts_fired PK — second insert with the same name fails 23505 and
+  // the email is skipped.
+  await checkAndFireThreshold(supabase);
+}
+
+async function checkAndFireThreshold(
+  supabase: ReturnType<typeof createAdminClient>,
+): Promise<void> {
+  const { count: distinct, error: countErr } = await supabase
+    .from("enterprise_leads")
+    .select("work_email", { count: "exact", head: true })
+    .not("language_bucket", "is", null);
+
+  if (countErr) {
+    console.error("[buyer-language] threshold count failed", countErr);
+    return;
+  }
+
+  const total = distinct ?? 0;
+  if (total < THRESHOLD_DISTINCT_PROSPECTS) return;
+
+  // Atomic dedup: try to insert the alert row. If it succeeds we're the
+  // first to reach the threshold. If it fails with 23505, someone else
+  // already fired.
+  const { error: dedupErr } = await supabase
+    .from("alerts_fired")
+    .insert({
+      name: THRESHOLD_ALERT_NAME,
+      payload: { distinct_prospects: total },
+    });
+  if (dedupErr) {
+    // Already fired — nothing to do. Surface only non-PK-violation errors.
+    if (dedupErr.code !== "23505") {
+      console.error("[buyer-language] dedup insert failed", dedupErr);
+    }
+    return;
+  }
+
+  // We won the race. Build the payload and send.
+  const { data: tallyRows } = await supabase
+    .from("buyer_language_tally")
+    .select("language_bucket, classified_count, distinct_prospects");
+
+  const tally: BucketTallyRow[] = (tallyRows ?? []).map((r: { language_bucket: string; classified_count: number; distinct_prospects: number }) => ({
+    bucket: r.language_bucket as BucketTallyRow["bucket"],
+    classified_count: r.classified_count,
+    distinct_prospects: r.distinct_prospects,
+  }));
+
+  const { data: quoteRows } = await supabase
+    .from("enterprise_leads")
+    .select("language_bucket, company, language_evidence")
+    .not("language_bucket", "is", null)
+    .not("language_evidence", "is", null)
+    .order("classified_at", { ascending: false })
+    .limit(20);
+
+  const sample_quotes: SampleQuote[] = (quoteRows ?? []).map((r: { language_bucket: string; company: string; language_evidence: string }) => ({
+    bucket: r.language_bucket as SampleQuote["bucket"],
+    company: r.company,
+    evidence: r.language_evidence,
+  }));
+
+  try {
+    await sendBuyerLanguageThresholdAlert({
+      total_distinct: total,
+      tally,
+      sample_quotes,
+    });
+  } catch (e) {
+    console.error("[buyer-language] threshold email send failed", e);
+    // Best-effort: don't roll back the alerts_fired row. The email is
+    // recoverable manually via the SQL view; the dedup is the durable
+    // signal.
+  }
 }
 
 function clientIp(req: Request): string | null {
