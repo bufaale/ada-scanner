@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { PricingCards } from "./client-pricing-cards";
 import { PricingFaq } from "./client-pricing-faq";
@@ -145,6 +146,31 @@ function PricingHeader() {
           One scanner. Five tiers. Transparent monthly pricing — no annual lock-in,
           no per-seat surcharge, and a free forever tier so you can prove it works
           before you pay.
+        </p>
+        <p
+          style={{
+            marginTop: 14,
+            fontSize: 14,
+            color: SLATE_500,
+            maxWidth: 680,
+            marginInline: "auto",
+            lineHeight: 1.5,
+          }}
+        >
+          Procurement-led organizations under DOJ Title II, Section 508, EAA, or
+          AODA obligations:{" "}
+          <Link
+            href="/enterprise"
+            style={{
+              color: CYAN_TEXT,
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              fontWeight: 500,
+            }}
+          >
+            see /enterprise
+          </Link>{" "}
+          for custom contracts (MSA, DPA, BAA, dedicated CSM).
         </p>
         <div
           style={{
@@ -594,8 +620,8 @@ function GovernmentCallout() {
           <div
             style={{ marginTop: 28, display: "flex", gap: 12, flexWrap: "wrap" }}
           >
-            <a
-              href="mailto:alex@piposlab.com?subject=AccessiScan%20Team%20tier"
+            <Link
+              href="/enterprise"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -607,11 +633,31 @@ function GovernmentCallout() {
                 fontFamily: FONT_INTER,
                 borderRadius: 8,
                 textDecoration: "none",
-                background: "#dc2626",
-                color: "#fff",
+                background: CYAN,
+                color: NAVY,
               }}
             >
-              Talk to government sales
+              See enterprise contracts →
+            </Link>
+            <a
+              href="mailto:enterprise@piposlab.com?subject=AccessiScan%20Enterprise%20%E2%80%94%20procurement%20review"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                height: 48,
+                padding: "0 22px",
+                fontSize: 15,
+                fontWeight: 500,
+                fontFamily: FONT_INTER,
+                borderRadius: 8,
+                textDecoration: "none",
+                background: "transparent",
+                color: "#fff",
+                border: "1px solid rgba(255,255,255,0.20)",
+              }}
+            >
+              Email enterprise@piposlab.com
             </a>
           </div>
         </div>

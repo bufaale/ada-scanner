@@ -5,6 +5,7 @@ const BASE = "https://accessiscan.piposlab.com";
 const STATIC_ROUTES: Array<{ path: string; priority: number; changeFreq: "daily" | "weekly" | "monthly" }> = [
   { path: "/", priority: 1.0, changeFreq: "weekly" },
   { path: "/pricing", priority: 0.9, changeFreq: "weekly" },
+  { path: "/enterprise", priority: 0.9, changeFreq: "monthly" },
   { path: "/free/wcag-scanner", priority: 0.9, changeFreq: "weekly" },
   { path: "/overlay-detector", priority: 0.7, changeFreq: "monthly" },
   { path: "/why-not-overlays", priority: 0.6, changeFreq: "monthly" },

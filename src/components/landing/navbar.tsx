@@ -19,7 +19,7 @@ import {
 const navLinks = [
   { href: "#features", label: "Product" },
   { href: "#comparison", label: "Comparison" },
-  { href: "#cta", label: "Government" },
+  { href: "/enterprise", label: "Enterprise" },
   { href: "/overlay-detector", label: "Overlay detector" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
