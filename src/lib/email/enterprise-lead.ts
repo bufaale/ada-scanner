@@ -92,14 +92,27 @@ export async function sendEnterpriseLeadNotification(
   </body>
 </html>`;
 
+  // resend@6.x expects snake_case `reply_to`. The TypeScript types accept
+  // `replyTo` too on some minor versions but the runtime drops it. Use the
+  // documented field name to be safe.
   const resend = new Resend(apiKey);
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from,
     to,
     subject: `[Enterprise] ${input.company} · ${input.name}`,
-    replyTo: input.work_email,
+    reply_to: input.work_email,
     html,
-  });
+  } as Parameters<typeof resend.emails.send>[0]);
+
+  // Resend SDK returns { data, error } — surface the error rather than
+  // silently swallowing it. The caller wraps this in try/catch so an email
+  // failure won't fail the form submission, but the operator will see the
+  // root cause in Vercel function logs.
+  if ("error" in result && result.error) {
+    throw new Error(
+      `Resend send failed: ${result.error.message ?? JSON.stringify(result.error)}`,
+    );
+  }
 }
 
 function escapeHtml(s: string): string {
