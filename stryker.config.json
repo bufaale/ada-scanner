@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation testing for revenue-critical paths. Catches the 'test passes but proves nothing' trap on AI-written suites — see MEMORY.md AIComply orphaned-price-IDs incident May 6 2026.",
+  "packageManager": "npm",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.config.ts"
+  },
+  "mutate": [
+    "src/lib/stripe/**/*.ts",
+    "src/lib/security/**/*.ts",
+    "!src/lib/**/*.test.ts",
+    "!src/lib/**/*.spec.ts"
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 60,
+    "break": 50
+  },
+  "reporters": ["progress", "clear-text", "html"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/index.html"
+  },
+  "concurrency": 4,
+  "timeoutMS": 30000,
+  "coverageAnalysis": "perTest",
+  "incremental": true,
+  "incrementalFile": ".stryker-tmp/incremental.json",
+  "tempDirName": ".stryker-tmp",
+  "cleanTempDir": true,
+  "logLevel": "info",
+  "ignorePatterns": [
+    "node_modules",
+    ".next",
+    "playwright-report",
+    "test-results",
+    "tests/e2e",
+    "tests/visual",
+    ".codegraph"
+  ]
+}

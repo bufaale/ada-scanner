@@ -14,6 +14,8 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
+    "test:mutation": "stryker run",
+    "test:mutation:incremental": "stryker run --incremental",
     "lighthouse": "lhci autorun --config=./lighthouserc.json"
   },
   "dependencies": {
@@ -48,6 +50,8 @@
     "@axe-core/playwright": "^4.11.2",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.58.2",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
