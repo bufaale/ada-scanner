@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { captureError } from "@/lib/pilotdeck-capture";
 
 export default function GlobalError({
@@ -11,6 +12,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    Sentry.captureException(error);
     void captureError(error, {
       type: "client",
       path: typeof window !== "undefined" ? window.location.pathname : "",
