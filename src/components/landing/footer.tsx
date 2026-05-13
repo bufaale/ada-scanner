@@ -8,28 +8,28 @@ const COLUMNS = [
   {
     title: "Product",
     links: [
-      { label: "WCAG scanner", href: "/#features" },
-      { label: "VPAT 2.5", href: "/pricing" },
-      { label: "GitHub Action", href: "/#features" },
+      { label: "Free WCAG scanner", href: "/free/wcag-scanner" },
+      { label: "Overlay detector", href: "/overlay-detector" },
+      { label: "Enterprise", href: "/enterprise" },
       { label: "Pricing", href: "/pricing" },
     ],
   },
   {
     title: "Compliance",
     links: [
-      { label: "WCAG 2.1 AA", href: "/#features" },
-      { label: "Section 508", href: "/#cta" },
-      { label: "DOJ Title II", href: "/#cta" },
-      { label: "EN 301 549", href: "/#cta" },
+      { label: "Public scorecards", href: "/scorecards" },
+      { label: "Trust center", href: "/trust" },
+      { label: "Why not overlays", href: "/why-not-overlays" },
+      { label: "Blog", href: "/blog" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "Blog", href: "/blog" },
-      { label: "Overlay detector (free)", href: "/overlay-detector" },
-      { label: "Why not overlays", href: "/why-not-overlays" },
-      { label: "Sample VPAT", href: "/#cta" },
+      { label: "VPAT 2.5", href: "/pricing" },
+      { label: "GitHub Action", href: "/#features" },
+      { label: "DOJ Title II", href: "/#cta" },
+      { label: "EN 301 549", href: "/#cta" },
     ],
   },
   {
