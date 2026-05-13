@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { PricingCards } from "./client-pricing-cards";
 import { PricingFaq } from "./client-pricing-faq";
+import { RoiCalculator } from "@/components/marketing/roi-calculator";
 
 export const metadata: Metadata = {
   title: "AccessiScan Pricing — Start free, scale to government",
@@ -809,6 +810,9 @@ export default function PricingPage() {
       <PricingCards />
       <UniversalFeatures />
       <VendorComparison />
+      <div style={{ padding: "48px 24px", background: "#f8fafc" }}>
+        <RoiCalculator />
+      </div>
       <GovernmentCallout />
       <PricingFaq />
     </div>
