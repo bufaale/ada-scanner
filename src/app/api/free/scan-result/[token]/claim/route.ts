@@ -1,0 +1,203 @@
+/**
+ * POST /api/free/scan-result/[token]/claim — let a visitor "claim" their
+ * scan by giving email AFTER they've seen the result.
+ *
+ * Why this endpoint exists:
+ *   The /free/wcag-scanner form asked for email BEFORE the scan ran.
+ *   78 scans tonight, 0 captured emails (0% conversion). Visitors don't
+ *   give email until they see value. This endpoint accepts the email
+ *   POST-result + persists to public_scan_results.email_captured + fires
+ *   a Resend email with the scan permalink + top remediation tips.
+ *
+ * Body: { email: string }
+ * Auth: none (public — same as /api/free/wcag-scan). IP rate-limit 4/min.
+ *
+ * Returns 200 on success, 400 on bad input, 404 on bogus token, 409 if
+ * already claimed (idempotent — the same token+email is a no-op).
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { Resend } from "resend";
+
+export const maxDuration = 15;
+
+const RATE_LIMIT_PER_MIN = 4;
+const ipHits = new Map<string, { count: number; resetAt: number }>();
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  const cur = ipHits.get(ip);
+  if (!cur || cur.resetAt < now) {
+    ipHits.set(ip, { count: 1, resetAt: now + 60_000 });
+    return false;
+  }
+  cur.count += 1;
+  return cur.count > RATE_LIMIT_PER_MIN;
+}
+
+function sanitizeEmail(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const t = raw.trim().toLowerCase();
+  if (t.length === 0 || t.length > 254) return null;
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(t)) return null;
+  return t;
+}
+
+interface ScanReport {
+  url: string;
+  health_score?: number;
+  total_issue_count?: number;
+  issues?: Array<{ rule?: string; severity?: string; fix_hint?: string }>;
+}
+
+function renderClaimEmail(opts: { url: string; score: number; permalink: string; topIssues: Array<{ rule: string; severity: string; fix_hint: string }> }) {
+  const { url, score, permalink, topIssues } = opts;
+  const issueListHtml = topIssues.length
+    ? `<ol style="padding-left:18px;margin:12px 0;">${topIssues
+        .map(
+          (i) =>
+            `<li style="margin-bottom:8px;font-size:14px;line-height:1.5"><strong>${escapeHtml(
+              i.rule,
+            )}</strong> <span style="color:#64748b;font-size:12px;text-transform:uppercase">(${escapeHtml(
+              i.severity,
+            )})</span><br/><span style="color:#475569">${escapeHtml(i.fix_hint)}</span></li>`,
+        )
+        .join("")}</ol>`
+    : "";
+  const issueListText = topIssues.length
+    ? topIssues.map((i, n) => `${n + 1}. ${i.rule} (${i.severity})\n   Fix: ${i.fix_hint}`).join("\n\n")
+    : "";
+
+  const html = `<div style="font-family:Inter,Arial,sans-serif;max-width:560px;color:#0f172a;font-size:14px;line-height:1.55">
+  <p>Hi,</p>
+  <p>Thanks for running an AccessiScan WCAG scan against <strong>${escapeHtml(url)}</strong>.</p>
+  <p>Your score: <strong style="font-size:18px">${score}/100</strong> — <a href="${permalink}">view the full scorecard</a></p>
+  ${topIssues.length ? `<p>Top issues + remediation hints:</p>${issueListHtml}` : ""}
+  <p style="margin-top:24px">For a full Playwright-based scan that runs ~80 more rules (color contrast, focus order, JS-rendered content), plus VPAT 2.5 export and Auto-Fix PRs against your repo, see <a href="https://accessiscan.piposlab.com/pricing">AccessiScan plans</a> from $19/mo.</p>
+  <p style="color:#64748b;font-size:12px;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px">DOJ Title II web-accessibility deadline: April 2027. ADA Title III lawsuits keep landing — start the remediation conversation now.</p>
+  <p style="color:#64748b;font-size:12px">— Alejandro<br/>Pipo&apos;s Lab LLC · <a href="https://accessiscan.piposlab.com">accessiscan.piposlab.com</a></p>
+</div>`;
+
+  const text = `Hi,
+
+Thanks for running an AccessiScan WCAG scan against ${url}.
+
+Your score: ${score}/100 — view the full scorecard: ${permalink}
+
+${issueListText ? `Top issues + remediation hints:\n\n${issueListText}\n\n` : ""}For a full Playwright-based scan that runs ~80 more rules (color contrast, focus order, JS-rendered content), plus VPAT 2.5 export and Auto-Fix PRs against your repo, see AccessiScan plans from $19/mo:
+https://accessiscan.piposlab.com/pricing
+
+DOJ Title II web-accessibility deadline: April 2027.
+
+— Alejandro
+Pipo's Lab LLC
+https://accessiscan.piposlab.com`;
+
+  return { html, text };
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+export async function POST(
+  req: NextRequest,
+  ctx: { params: Promise<{ token: string }> },
+) {
+  const { token } = await ctx.params;
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  if (rateLimited(ip)) {
+    return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
+
+  let body: { email?: unknown };
+  try {
+    body = (await req.json()) as typeof body;
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+  const email = sanitizeEmail(body.email);
+  if (!email) {
+    return NextResponse.json({ ok: false, error: "invalid_email" }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  type LooseDb = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const db = admin as unknown as LooseDb;
+
+  // Lookup the scan
+  const { data: row, error: lookupErr } = await db
+    .from("public_scan_results")
+    .select("id, url, report, email_captured")
+    .eq("id", token)
+    .maybeSingle();
+  if (lookupErr) {
+    return NextResponse.json(
+      { ok: false, error: "lookup_failed", message: lookupErr.message },
+      { status: 500 },
+    );
+  }
+  if (!row) {
+    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+
+  // Idempotent — if same email already on the row, treat as success
+  if (row.email_captured && row.email_captured.toLowerCase() === email) {
+    return NextResponse.json({ ok: true, claimed: true, idempotent: true });
+  }
+  // Conflict if a different email already claimed
+  if (row.email_captured && row.email_captured.toLowerCase() !== email) {
+    return NextResponse.json(
+      { ok: false, error: "already_claimed" },
+      { status: 409 },
+    );
+  }
+
+  // Persist the email capture
+  const { error: updateErr } = await db
+    .from("public_scan_results")
+    .update({ email_captured: email })
+    .eq("id", token);
+  if (updateErr) {
+    return NextResponse.json(
+      { ok: false, error: "persist_failed", message: updateErr.message },
+      { status: 500 },
+    );
+  }
+
+  // Build + send the email
+  const report = (row.report ?? {}) as ScanReport;
+  const score = typeof report.health_score === "number" ? report.health_score : 0;
+  const topIssues = (Array.isArray(report.issues) ? report.issues : [])
+    .slice(0, 5)
+    .map((i) => ({
+      rule: i.rule ?? "Unknown",
+      severity: i.severity ?? "moderate",
+      fix_hint: i.fix_hint ?? "",
+    }));
+  const permalink = `https://accessiscan.piposlab.com/scan-result/${token}`;
+  const { html, text } = renderClaimEmail({ url: row.url, score, permalink, topIssues });
+
+  let resendId: string | undefined;
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const sendRes = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || "AccessiScan <no-reply@piposlab.com>",
+      replyTo: "alex@piposlab.com",
+      to: email,
+      subject: `Your WCAG scan of ${row.url} — score ${score}/100`,
+      html,
+      text,
+    });
+    resendId = sendRes.data?.id;
+  } catch (e) {
+    // Email send failed but capture is persisted — that's OK; return ok:true
+    // so the visitor's flow doesn't break, log the issue server-side.
+    console.error("[claim] resend send failed", e);
+  }
+
+  return NextResponse.json({ ok: true, claimed: true, resend_id: resendId });
+}

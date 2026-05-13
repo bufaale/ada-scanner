@@ -20,6 +20,9 @@ interface FreeScanResponse {
     health_score: number;
     error?: string;
   };
+  share_token?: string;
+  share_url?: string;
+  email_captured?: boolean;
 }
 
 const SEVERITY_COLOR: Record<string, string> = {
@@ -30,21 +33,31 @@ const SEVERITY_COLOR: Record<string, string> = {
 
 export function FreeScannerForm() {
   const [url, setUrl] = useState("");
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<FreeScanResponse | null>(null);
+
+  // Post-result email capture — moved AFTER the scan ran so visitors see
+  // value before giving up their email. The pre-result form was capturing
+  // 0% (78 scans, 0 emails) because asking for email-up-front is too
+  // friction-y when the visitor hasn't seen any score yet.
+  const [claimEmail, setClaimEmail] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimStatus, setClaimStatus] = useState<"idle" | "sent" | "error" | "already">("idle");
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setResult(null);
+    setClaimStatus("idle");
+    setClaimEmail("");
     try {
       const res = await fetch("/api/free/wcag-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, email: email || undefined }),
+        body: JSON.stringify({ url }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -59,6 +72,36 @@ export function FreeScannerForm() {
     }
   }
 
+  async function onClaim(e: React.FormEvent) {
+    e.preventDefault();
+    if (!result?.share_token || !claimEmail) return;
+    setClaiming(true);
+    setClaimError(null);
+    try {
+      const r = await fetch(`/api/free/scan-result/${result.share_token}/claim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: claimEmail }),
+      });
+      const data = await r.json();
+      if (r.status === 409) {
+        setClaimStatus("already");
+        return;
+      }
+      if (!r.ok || !data?.ok) {
+        setClaimError(typeof data?.error === "string" ? data.error : "Couldn't send the email — try again in a moment.");
+        setClaimStatus("error");
+        return;
+      }
+      setClaimStatus("sent");
+    } catch (err) {
+      setClaimError(err instanceof Error ? err.message : "Network error");
+      setClaimStatus("error");
+    } finally {
+      setClaiming(false);
+    }
+  }
+
   return (
     <div>
       <form onSubmit={onSubmit} className="space-y-3">
@@ -70,18 +113,6 @@ export function FreeScannerForm() {
             onChange={(e) => setUrl(e.target.value)}
             placeholder="example.com or https://example.com/page"
             required
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#0b1f3a] focus:outline-none focus:ring-1 focus:ring-[#0b1f3a]"
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-medium text-slate-700">
-            Email <span className="text-xs text-slate-500">(optional — get a follow-up tips email)</span>
-          </span>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@company.com"
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-[#0b1f3a] focus:outline-none focus:ring-1 focus:ring-[#0b1f3a]"
           />
         </label>
@@ -101,6 +132,7 @@ export function FreeScannerForm() {
             </>
           )}
         </button>
+        <p className="text-xs text-slate-500">No signup. Results appear below in under 30 seconds.</p>
       </form>
 
       {error && (
@@ -185,6 +217,65 @@ export function FreeScannerForm() {
               ))}
             </ul>
           )}
+
+          {/* POST-RESULT EMAIL CAPTURE — moved here from pre-result form.
+              Visitors now see their score before being asked for email. */}
+          {result.share_token && claimStatus !== "sent" ? (
+            <div
+              className="rounded-lg border border-amber-200 bg-amber-50 p-5"
+              data-testid="scan-claim-prompt"
+            >
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-900">
+                GET A COPY EMAILED
+              </div>
+              <h3 className="text-base font-semibold text-amber-950">
+                Save this report + remediation tips
+              </h3>
+              <p className="mt-1 text-sm text-amber-900/90">
+                We&apos;ll send you this scorecard, the top 5 fix hints, and a
+                permalink you can share with your team. No newsletter, no signup.
+              </p>
+              <form onSubmit={onClaim} className="mt-3 flex flex-wrap gap-2">
+                <input
+                  type="email"
+                  required
+                  value={claimEmail}
+                  onChange={(e) => setClaimEmail(e.target.value.slice(0, 254))}
+                  placeholder="you@company.com"
+                  data-testid="scan-claim-email"
+                  className="min-w-0 flex-1 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                <button
+                  type="submit"
+                  disabled={claiming || !claimEmail}
+                  data-testid="scan-claim-submit"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#0b1f3a] px-4 py-2 text-sm font-medium text-white hover:bg-[#071428] disabled:opacity-50"
+                >
+                  {claiming ? "Sending…" : "Email me a copy"}
+                </button>
+              </form>
+              {claimStatus === "error" && claimError ? (
+                <p className="mt-2 text-xs text-rose-900" role="alert">
+                  {claimError}
+                </p>
+              ) : null}
+              {claimStatus === "already" ? (
+                <p className="mt-2 text-xs text-amber-900">
+                  This scan already has an email on file. Check your inbox.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {claimStatus === "sent" ? (
+            <div
+              data-testid="scan-claim-sent"
+              className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+            >
+              ✓ Sent. Check{" "}
+              <span className="font-medium">{claimEmail}</span> in a minute.
+            </div>
+          ) : null}
 
           <Link
             href="/signup"
