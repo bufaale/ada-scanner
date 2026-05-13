@@ -40,7 +40,10 @@ test.describe("AccessiScan post-result email claim — shipped 2026-05-13", () =
     expect(body.error).toBe("not_found");
   });
 
-  test.describe("claim flow against a freshly-created scan", () => {
+  test.describe.serial("claim flow against a freshly-created scan", () => {
+    // Tests share a token from beforeAll. Disable retries so the token
+    // isn't re-seeded mid-block (would break the 409 conflict assertion).
+    test.describe.configure({ retries: 0 });
     let token = "";
 
     test.beforeAll(async () => {
