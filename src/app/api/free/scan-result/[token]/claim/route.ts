@@ -22,7 +22,11 @@ import { Resend } from "resend";
 
 export const maxDuration = 15;
 
-const RATE_LIMIT_PER_MIN = 4;
+// 12/min/IP — generous enough that E2E + multi-tab users don't trip it,
+// strict enough that scripted brute-force of token+email pairs is slowed.
+// Abuse is already capped by (a) token-must-exist lookup, (b) 409 on a
+// different-email re-claim (can't hijack someone else's scan).
+const RATE_LIMIT_PER_MIN = 12;
 const ipHits = new Map<string, { count: number; resetAt: number }>();
 function rateLimited(ip: string): boolean {
   const now = Date.now();
