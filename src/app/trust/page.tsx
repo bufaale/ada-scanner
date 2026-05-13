@@ -162,13 +162,55 @@ export default async function TrustCenterPage() {
       </section>
 
       <section className="mt-12 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-8 text-white">
-        <h2 className="text-2xl font-bold mb-3">Want your own Trust Center?</h2>
+        <h2 className="text-2xl font-bold mb-3">Embed the badge on your site</h2>
         <p className="text-slate-300 mb-6 max-w-prose">
-          Every AccessiScan customer gets a public-facing trust page like this
-          one, scoped to their domains. Embed a "WCAG: 98/100" badge on your
-          site that links here, so prospects can verify compliance before they
-          ask. Procurement teams cite it in RFPs.
+          One {"<script>"} tag renders a live WCAG score badge linking back
+          to your scan result. Refreshes every 5 minutes from the latest
+          scan. Two ways to embed:
         </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="rounded-lg bg-slate-950/50 p-4 border border-white/10">
+            <div className="text-xs font-semibold uppercase tracking-wide text-blue-300 mb-2">
+              Drop-in script
+            </div>
+            <pre className="text-xs overflow-x-auto text-slate-100"><code>{`<script src="https://accessiscan.piposlab.com/badge/${"YOUR-DOMAIN.com"}?format=js"></script>`}</code></pre>
+            <p className="text-xs text-slate-400 mt-2">
+              Inserts the badge wherever the {"<script>"} tag lives. No CSS needed.
+            </p>
+          </div>
+          <div className="rounded-lg bg-slate-950/50 p-4 border border-white/10">
+            <div className="text-xs font-semibold uppercase tracking-wide text-blue-300 mb-2">
+              SVG image (footer-ready)
+            </div>
+            <pre className="text-xs overflow-x-auto text-slate-100"><code>{`<a href="https://accessiscan.piposlab.com/scan-result/<TOKEN>" target="_blank" rel="noopener">
+  <img src="https://accessiscan.piposlab.com/badge/${"YOUR-DOMAIN.com"}" alt="WCAG score" width="250" height="60">
+</a>`}</code></pre>
+            <p className="text-xs text-slate-400 mt-2">
+              For when you want full control of the anchor.
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="text-xs font-semibold uppercase tracking-wide text-blue-300 mb-2">
+            Live preview — accessiscan.piposlab.com
+          </div>
+          <a
+            href="https://accessiscan.piposlab.com/free/wcag-scanner"
+            target="_blank"
+            rel="noopener"
+            className="inline-block bg-white/5 rounded-lg p-3 border border-white/10 hover:bg-white/10"
+          >
+            <img
+              src="https://accessiscan.piposlab.com/badge/accessiscan.piposlab.com"
+              alt="AccessiScan WCAG score badge live preview"
+              width={250}
+              height={60}
+            />
+          </a>
+        </div>
+
         <div className="flex flex-wrap gap-3">
           <Link
             href="/pricing"
