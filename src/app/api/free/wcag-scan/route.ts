@@ -1,7 +1,9 @@
+import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { scanUrlLite } from "@/lib/free-scan/lite-scanner";
 import { urlInputSchema, validateResolvedIP } from "@/lib/security/url-validator";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 30;
 
@@ -56,9 +58,32 @@ export async function POST(req: NextRequest) {
   // just acknowledge.
   const email_captured = Boolean(email);
 
+  // Persist the scan to public_scan_results so the visitor gets a
+  // shareable permalink. Token is a random 12-byte base64url string
+  // (16 chars) — collision-resistant + unguessable. The page at
+  // /scan-result/[token] renders the report read-only without auth.
+  let share_token: string | null = null;
+  try {
+    const token = crypto.randomBytes(12).toString("base64url");
+    const admin = createAdminClient();
+    const { error } = await admin.from("public_scan_results").insert({
+      id: token,
+      url,
+      report,
+      email_captured: email ?? null,
+    });
+    if (!error) share_token = token;
+  } catch {
+    // Best-effort — don't fail the response if persistence fails.
+  }
+
   return NextResponse.json({
     report,
     email_captured,
+    share_token,
+    share_url: share_token
+      ? `https://accessiscan.piposlab.com/scan-result/${share_token}`
+      : null,
     upgrade_cta:
       "Run the full Playwright-based scan with VPAT 2.5 export at https://accessiscan.piposlab.com/signup",
   });
