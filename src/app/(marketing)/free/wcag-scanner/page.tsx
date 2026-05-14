@@ -4,12 +4,12 @@ import { FreeScannerForm } from "@/components/free-scan/scanner-form";
 export const metadata: Metadata = {
   title: "Free WCAG Scanner — instant accessibility check | AccessiScan",
   description:
-    "Run a free instant WCAG 2.1 AA check on any public URL. See the top 5 most common accessibility issues in under 30 seconds. No signup required.",
+    "Run a free instant WCAG 2.1 AA check on any public URL. 13 high-impact accessibility checks with WCAG citations + fix hints. Results in under 30 seconds. No signup.",
   alternates: { canonical: "/free/wcag-scanner" },
   openGraph: {
     title: "Free WCAG Scanner — AccessiScan",
     description:
-      "Instant WCAG 2.1 AA check on any URL. Top 5 issues in 30 seconds. No signup.",
+      "Instant WCAG 2.1 AA check on any URL. 13 high-impact checks in 30 seconds. No signup.",
     type: "website",
   },
 };
@@ -25,9 +25,11 @@ export default function FreeWcagScannerPage() {
           Free WCAG 2.1 AA Scanner
         </h1>
         <p className="mt-3 text-base text-slate-600">
-          Paste any public URL. We&apos;ll check the 5 most common WCAG 2.1 AA failures
-          (missing alt text, unlabeled inputs, missing language, viewport, heading
-          hierarchy) and show you the results in under 30 seconds.
+          Paste any public URL. We&apos;ll run 13 high-impact WCAG 2.1 AA checks
+          (missing alt text, unlabeled inputs, buttons + links without accessible
+          names, duplicate IDs, untitled iframes, missing skip-to-content,
+          heading hierarchy, and more). Each finding includes the exact WCAG
+          reference and a concrete fix hint. Results in under 30 seconds.
         </p>
       </header>
 

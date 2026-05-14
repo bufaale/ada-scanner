@@ -1,7 +1,9 @@
 /**
  * Lightweight, single-fetch WCAG scanner used by the public /free/wcag-scanner
- * tool. Trades accuracy for speed: one HTTP GET + regex-based checks for the
- * 5 most common WCAG 2.1 AA failures.
+ * tool. Trades accuracy for speed: one HTTP GET + regex-based checks for 13
+ * high-impact WCAG 2.1 AA failures (alt text, labels, headings, buttons/links
+ * without accessible names, duplicate IDs, untitled iframes, data tables
+ * without <th>, missing skip-to-content, page title, etc.).
  *
  * NOT a substitute for the real Playwright-based scanner — this exists to
  * give visitors a "did you know your site has accessibility issues?" hook
