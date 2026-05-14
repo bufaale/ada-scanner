@@ -201,6 +201,149 @@ export function analyzeHtml(html: string): WcagFreeIssue[] {
     });
   }
 
+  // ─── 8 additional checks added 2026-05-14 to fix the conversion gap
+  // The 5 checks above pass on most modern .gov sites because static SSR
+  // generators set lang/viewport/h1 by default — so visitors see "100/100"
+  // and lose the upgrade motivation. These 8 catch the issues every
+  // government site DOES have: icon-only buttons without aria-label,
+  // empty links, duplicate ids from legacy CMS, untitled iframes
+  // (embedded videos/maps), data tables without <th>, missing
+  // skip-to-content link. Same regex approach — no DOM/CSS parsing
+  // needed.
+
+  // 6. Buttons with no accessible name (icon-only, no aria-label, no inner text)
+  const buttons = Array.from(html.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/gi));
+  const buttonsNoName = buttons.filter(([, attrs, inner]) => {
+    if (/aria-label\s*=\s*["'][^"']+["']/i.test(attrs)) return false;
+    if (/aria-labelledby\s*=/i.test(attrs)) return false;
+    if (/title\s*=\s*["'][^"']+["']/i.test(attrs)) return false;
+    const text = inner.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+    return text.length === 0;
+  });
+  if (buttonsNoName.length > 0) {
+    issues.push({
+      rule: "Buttons without accessible name",
+      severity: "critical",
+      count: buttonsNoName.length,
+      example: buttonsNoName[0][0].substring(0, 120),
+      wcag_ref: "WCAG 4.1.2 Name, Role, Value (A)",
+      fix_hint: "Add aria-label or visible text. Icon-only buttons need aria-label=\"close\" etc.",
+    });
+  }
+
+  // 7. Links without accessible text (empty <a>, icon links missing aria-label)
+  const links = Array.from(html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi));
+  const emptyLinks = links.filter(([, attrs, inner]) => {
+    if (!/href\s*=/i.test(attrs)) return false;
+    if (/aria-label\s*=\s*["'][^"']+["']/i.test(attrs)) return false;
+    if (/aria-labelledby\s*=/i.test(attrs)) return false;
+    if (/title\s*=\s*["'][^"']+["']/i.test(attrs)) return false;
+    const text = inner.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim();
+    return text.length === 0;
+  });
+  if (emptyLinks.length > 0) {
+    issues.push({
+      rule: "Links without accessible text",
+      severity: "critical",
+      count: emptyLinks.length,
+      example: emptyLinks[0][0].substring(0, 120),
+      wcag_ref: "WCAG 2.4.4 Link Purpose (A) + 4.1.2 Name, Role, Value (A)",
+      fix_hint: "Add visible text or aria-label describing the link destination.",
+    });
+  }
+
+  // 8. <title> tag missing or empty
+  const titleMatch = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+  if (!titleMatch || !titleMatch[1].trim()) {
+    issues.push({
+      rule: "Missing or empty <title> element",
+      severity: "serious",
+      count: 1,
+      wcag_ref: "WCAG 2.4.2 Page Titled (A)",
+      fix_hint: "Add a unique, descriptive <title> per page.",
+    });
+  }
+
+  // 9. <a target="_blank"> without rel="noopener noreferrer"
+  const externalLinks = Array.from(html.matchAll(/<a\b[^>]*target\s*=\s*["']_blank["'][^>]*>/gi));
+  const externalLinksMissingRel = externalLinks.filter(
+    (m) => !/rel\s*=\s*["'][^"']*\b(noopener|noreferrer)\b/i.test(m[0]),
+  );
+  if (externalLinksMissingRel.length > 0) {
+    issues.push({
+      rule: "External links missing rel=\"noopener\"",
+      severity: "moderate",
+      count: externalLinksMissingRel.length,
+      example: externalLinksMissingRel[0][0].substring(0, 120),
+      wcag_ref: "WCAG 3.2.5 Change on Request (AAA) + security best practice",
+      fix_hint: "Add rel=\"noopener noreferrer\" to every <a target=\"_blank\">.",
+    });
+  }
+
+  // 10. Duplicate id attributes (breaks aria-labelledby + label/for)
+  const idMatches = Array.from(html.matchAll(/\bid\s*=\s*["']([^"']+)["']/gi)).map((m) => m[1]);
+  const idCounts = new Map<string, number>();
+  for (const id of idMatches) idCounts.set(id, (idCounts.get(id) || 0) + 1);
+  const dupes = Array.from(idCounts.entries()).filter(([, n]) => n > 1);
+  if (dupes.length > 0) {
+    issues.push({
+      rule: "Duplicate id attributes",
+      severity: "serious",
+      count: dupes.reduce((s, [, n]) => s + (n - 1), 0),
+      example: `id="${dupes[0][0]}" appears ${dupes[0][1]} times`,
+      wcag_ref: "WCAG 4.1.1 Parsing (A)",
+      fix_hint: "Every id in the document must be unique. Use class for repeated styling.",
+    });
+  }
+
+  // 11. <iframe> without title attribute
+  const iframes = Array.from(html.matchAll(/<iframe\b[^>]*>/gi));
+  const iframesNoTitle = iframes.filter(
+    (m) => !/\btitle\s*=\s*["'][^"']+["']/i.test(m[0]),
+  );
+  if (iframesNoTitle.length > 0) {
+    issues.push({
+      rule: "iframes without title attribute",
+      severity: "serious",
+      count: iframesNoTitle.length,
+      example: iframesNoTitle[0][0].substring(0, 120),
+      wcag_ref: "WCAG 4.1.2 Name, Role, Value (A) + 2.4.1 Bypass Blocks (A)",
+      fix_hint: "Add title=\"Brief description\" to every <iframe> (embedded videos/maps/forms).",
+    });
+  }
+
+  // 12. <table> without <th> (data tables only — exclude role="presentation")
+  const tables = Array.from(html.matchAll(/<table\b([^>]*)>([\s\S]*?)<\/table>/gi));
+  const dataTablesNoTh = tables.filter(([, attrs, inner]) => {
+    if (/role\s*=\s*["'](presentation|none)["']/i.test(attrs)) return false;
+    return !/<th\b/i.test(inner);
+  });
+  if (dataTablesNoTh.length > 0) {
+    issues.push({
+      rule: "Data tables without <th> headers",
+      severity: "serious",
+      count: dataTablesNoTh.length,
+      example: dataTablesNoTh[0][0].substring(0, 120),
+      wcag_ref: "WCAG 1.3.1 Info and Relationships (A)",
+      fix_hint: "Use <th> for column/row headers, or set role=\"presentation\" on layout tables.",
+    });
+  }
+
+  // 13. Skip-to-content link missing — heuristic on first 5KB of <body>
+  const bodyStart = (html.match(/<body\b[^>]*>([\s\S]{0,5000})/i) || [, ""])[1];
+  const hasSkipLink =
+    /<a\b[^>]*href\s*=\s*["']#(main|content|skip|sk-)[^"']*["']/i.test(bodyStart) ||
+    /<a\b[^>]*class\s*=\s*["'][^"']*\bskip(?:[\s-]link|[\s-]to|[\s-]nav)?[^"']*["']/i.test(bodyStart);
+  if (!hasSkipLink) {
+    issues.push({
+      rule: "Missing skip-to-content link",
+      severity: "moderate",
+      count: 1,
+      wcag_ref: "WCAG 2.4.1 Bypass Blocks (A)",
+      fix_hint: "Add a visually-hidden 'Skip to main content' link as the first interactive element.",
+    });
+  }
+
   return issues;
 }
 
