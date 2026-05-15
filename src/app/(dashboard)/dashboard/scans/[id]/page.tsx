@@ -309,10 +309,41 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelInitialIssueId, setPanelInitialIssueId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
 
   function openPanelWith(issueId?: string | null) {
     setPanelInitialIssueId(issueId ?? null);
     setPanelOpen(true);
+  }
+
+  async function publishAndCopyPermalink() {
+    if (sharing || !scan) return;
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/dashboard/scans/${scan.id}/share`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Could not publish scan");
+      }
+      const url: string = data.public_url;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Public link copied to clipboard", {
+          description: `Anyone with this link can view the scan. Expires in 30 days. ${url}`,
+          duration: 8000,
+        });
+      } catch {
+        // Clipboard write blocked (focus issue) — show URL inline so user can copy manually
+        toast.success("Public link ready", {
+          description: `Copy manually: ${url}`,
+          duration: 12000,
+        });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not publish scan");
+    } finally {
+      setSharing(false);
+    }
   }
 
   useEffect(() => {
@@ -425,6 +456,9 @@ export default function ScanResultsPage({ params }: { params: Promise<{ id: stri
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <ActionButton onClick={() => router.push(`/dashboard/scans/new?url=${encodeURIComponent(scan.url)}`)}>
             ↻ Re-scan
+          </ActionButton>
+          <ActionButton onClick={publishAndCopyPermalink} disabled={sharing}>
+            {sharing ? "⌛ Publishing…" : "↗ Share public link"}
           </ActionButton>
           <ActionButton href={`/dashboard/scans/${scan.id}/igts`}>
             ✓ Guided Tests
