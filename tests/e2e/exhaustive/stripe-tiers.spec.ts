@@ -99,3 +99,40 @@ test.describe("Free tier — no checkout button, gated features prompt upgrade",
     }
   });
 });
+
+test.describe("Checkout endpoint — security: auth before price-ID probe", () => {
+  test("unauthenticated POST to /api/stripe/checkout returns 401, not 400 for valid price", async ({
+    request,
+  }) => {
+    // CRITICAL: auth must be checked BEFORE price-ID validation.
+    // If price-ID validation fires first, an unauthenticated caller can
+    // enumerate valid price IDs by comparing 400 (invalid) vs 401 (valid).
+    // After the fix (commit 85af3b0), all unauthenticated POSTs return 401.
+    const resp = await request.post("/api/stripe/checkout", {
+      data: { priceId: "price_probe_attempt" },
+    });
+    expect(resp.status()).toBe(401);
+  });
+
+  test("authenticated POST with invalid priceId returns 400", async ({
+    page,
+    request,
+  }) => {
+    const u = await createTestUser("checkout-invalid-price", "free");
+    try {
+      // Log in to establish session cookies
+      await loginViaUI(page, u.email);
+      // Use the page context cookies for the API call
+      const cookies = await page.context().cookies();
+      const cookieHeader = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+
+      const resp = await request.post("/api/stripe/checkout", {
+        data: { priceId: "price_invalid_fake_id" },
+        headers: { Cookie: cookieHeader },
+      });
+      expect(resp.status()).toBe(400);
+    } finally {
+      await deleteTestUser(u.id);
+    }
+  });
+});
