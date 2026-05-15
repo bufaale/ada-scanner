@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Search, AlertTriangle, CheckCircle, ArrowRight } from "lucide-react";
+import { Loader2, Search, AlertTriangle, CheckCircle, ArrowRight, Copy, Check } from "lucide-react";
 import Link from "next/link";
 
 interface FreeScanResponse {
@@ -45,6 +45,24 @@ export function FreeScannerForm() {
   const [claiming, setClaiming] = useState(false);
   const [claimStatus, setClaimStatus] = useState<"idle" | "sent" | "error" | "already">("idle");
   const [claimError, setClaimError] = useState<string | null>(null);
+
+  // Permalink share state — the viral wedge.
+  const [permalinkCopied, setPermalinkCopied] = useState(false);
+  function publicPermalink(token: string): string {
+    if (typeof window === "undefined") return `https://accessiscan.piposlab.com/scan-result/${token}`;
+    return `${window.location.origin}/scan-result/${token}`;
+  }
+  async function copyPermalink(token: string) {
+    const url = publicPermalink(token);
+    try {
+      await navigator.clipboard.writeText(url);
+      setPermalinkCopied(true);
+      setTimeout(() => setPermalinkCopied(false), 2500);
+    } catch {
+      // Clipboard write blocked — show prompt for manual copy
+      window.prompt("Copy this public link:", url);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -217,6 +235,73 @@ export function FreeScannerForm() {
               ))}
             </ul>
           )}
+
+          {/* PUBLIC PERMALINK — the viral wedge. Surfaces the public URL
+              so the visitor can share their score with their team / boss /
+              consultant. Public, no signup required to view. */}
+          {result.share_token ? (
+            <div
+              className="rounded-lg border border-sky-200 bg-sky-50 p-5"
+              data-testid="scan-permalink-share"
+            >
+              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-sky-900">
+                PUBLIC LINK · ANYONE CAN VIEW
+              </div>
+              <h3 className="text-base font-semibold text-sky-950">
+                Share this scorecard with your team
+              </h3>
+              <p className="mt-1 text-sm text-sky-900/90">
+                Public link. No signup required to view. Expires in 30 days.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  readOnly
+                  aria-label="Public permalink URL for this scan"
+                  title="Public permalink — click to select, then copy"
+                  value={publicPermalink(result.share_token)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="min-w-0 flex-1 rounded-md border border-sky-300 bg-white px-3 py-2 font-mono text-xs text-slate-900"
+                  data-testid="scan-permalink-input"
+                />
+                <button
+                  type="button"
+                  onClick={() => result.share_token && copyPermalink(result.share_token)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:bg-sky-800"
+                  data-testid="scan-permalink-copy"
+                >
+                  {permalinkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {permalinkCopied ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(publicPermalink(result.share_token))}&text=${encodeURIComponent(`Just scanned ${result.report.url} for WCAG 2.1 AA compliance. Score: ${result.report.health_score}/100, ${result.report.total_issue_count} issues found.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-900 hover:bg-sky-100"
+                  data-testid="scan-share-x"
+                >
+                  Share on X
+                </a>
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicPermalink(result.share_token))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-900 hover:bg-sky-100"
+                  data-testid="scan-share-linkedin"
+                >
+                  Share on LinkedIn
+                </a>
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(`WCAG scan of ${result.report.url}`)}&body=${encodeURIComponent(`Hi,\n\nI just ran a WCAG 2.1 AA compliance scan on ${result.report.url}.\n\nScore: ${result.report.health_score}/100\nIssues found: ${result.report.total_issue_count}\n\nFull report: ${publicPermalink(result.share_token)}`)}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-sky-300 bg-white px-3 py-2 text-xs font-medium text-sky-900 hover:bg-sky-100"
+                  data-testid="scan-share-email"
+                >
+                  Email
+                </a>
+              </div>
+            </div>
+          ) : null}
 
           {/* POST-RESULT EMAIL CAPTURE — moved here from pre-result form.
               Visitors now see their score before being asked for email. */}
