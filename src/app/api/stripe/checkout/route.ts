@@ -4,6 +4,19 @@ import { createClient } from "@/lib/supabase/server";
 import { pricingPlans } from "@/lib/stripe/plans";
 
 export async function POST(req: Request) {
+  // Auth FIRST — prevents unauthenticated users from probing which price IDs
+  // are valid (price-ID enumeration attack). Reading req.json() before auth
+  // leaks the allowlist to anonymous callers. See MEMORY.md: Stripe billing
+  // patterns (auth-first ordering lesson from CallSpark BUG-08).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { priceId, mode = "subscription" } = await req.json();
 
   // Validate mode
@@ -18,13 +31,6 @@ export async function POST(req: Request) {
 
   if (!validPriceIds.includes(priceId)) {
     return NextResponse.json({ error: "Invalid price" }, { status: 400 });
-  }
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
