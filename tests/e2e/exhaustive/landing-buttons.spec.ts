@@ -102,12 +102,11 @@ test.describe("Landing — every button + link", () => {
       expectAllPointTo(hrefs, "#faq", "FAQ");
     });
 
-    test("Government / For government → #cta (every copy)", async ({ page }) => {
-      const hrefs = [
-        ...(await allHrefsForName(page, /^government$/i)),
-        ...(await allHrefsForName(page, /^for government$/i)),
-      ];
-      expectAllPointTo(hrefs, "#cta", "Government / For government");
+    test("Enterprise nav link → /enterprise", async ({ page }) => {
+      // The "For government" nav link was replaced by "Enterprise" pointing
+      // to the dedicated /enterprise landing page (better UX than a scroll anchor).
+      const hrefs = await allHrefsForName(page, /^enterprise$/i);
+      expectAllPointTo(hrefs, "/enterprise", "Enterprise");
     });
   });
 
