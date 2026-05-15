@@ -24,6 +24,14 @@ export async function middleware(request: NextRequest) {
   const rl = await applyMiddlewareRateLimit(request);
   if (rl) return setSecurityHeaders(rl, request);
 
+  // Skip updateSession on OAuth callback paths. Calling getUser() here would
+  // rotate the auth cookie and drop the PKCE code_verifier before the
+  // /auth/confirm route can exchange the code for a session. See MEMORY.md:
+  // project_supabase_oauth_middleware_pkce_trap.md
+  if (request.nextUrl.pathname.startsWith("/auth/")) {
+    return setSecurityHeaders(NextResponse.next(), request);
+  }
+
   const response = await updateSession(request);
   return setSecurityHeaders(response, request);
 }
